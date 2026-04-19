@@ -55,7 +55,17 @@ const cssOverrides = `
   .dynamic-widget-modal .wallet-list-item,
   .wallet-list__scroll-container,
   .dynamic-footer,
-  .social-redirect-view__footer {
+  .social-redirect-view__footer,
+  [class*="wallet-list"],
+  [class*="WalletList"],
+  [class*="separator"],
+  [class*="Separator"],
+  [class*="wallet-group"],
+  [class*="WalletGroup"] {
+    display: none !important;
+  }
+  /* Also hide the OR divider and everything after email input */
+  .dynamic-auth-layout__modal-body > div:nth-child(n+3) {
     display: none !important;
   }
 `;
@@ -66,6 +76,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       settings={{
         environmentId: '76dc2f04-191e-4a8c-8ff9-22b6799cc796',
         walletConnectors: [EthereumWalletConnectors],
+        walletsFilter: () => [], // Hide all external wallets, keep embedded only
         cssOverrides,
       }}
     >
