@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arka — Pitch Deck</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1a1a2e; }
+  .deck { max-width: 520px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+  .slide { position: relative; width: 100%; min-height: 420px; background: #fff; border-radius: 24px; padding: 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); }
+  .slide-num { font-size: 11px; color: rgba(0,0,0,0.25); }
+  .slide h1 { font-size: 28px; font-weight: 800; margin-top: 12px; }
+  .slide .sub { font-size: 13px; color: rgba(0,0,0,0.5); margin-top: 4px; font-weight: 500; }
+  .slide .body { margin-top: 20px; font-size: 14px; line-height: 1.7; color: rgba(0,0,0,0.6); white-space: pre-line; }
+  .accent-bar { position: absolute; bottom: 0; left: 32px; right: 32px; height: 4px; border-radius: 4px; }
+  .nav { margin-top: 24px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .nav button { background: none; border: none; font-size: 14px; font-weight: 600; padding: 10px 20px; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
+  .nav button:hover { background: rgba(0,0,0,0.05); }
+  .nav button:disabled { opacity: 0.3; cursor: default; }
+  .nav button:disabled:hover { background: none; }
+  .dots { display: flex; gap: 6px; }
+  .dot { height: 8px; border-radius: 8px; cursor: pointer; transition: all 0.3s; border: none; }
+  .logo-rays { margin: 8px 0 20px; }
+  .logo-rays svg { width: 48px; height: 48px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <div class="slide" id="slide"></div>
+  <div class="nav">
+    <button id="prev" onclick="go(-1)">← Back</button>
+    <div class="dots" id="dots"></div>
+    <button id="next" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+const LOGO = `<div class="logo-rays"><svg viewBox="0 0 77 46" fill="none"><path d="M3 46L33 38L3 30L0 38L3 46Z" fill="#00AEEF"/><path d="M3.598 27.356L33.579 35.427L11.598 13.499L5 18.927L3.598 27.356Z" fill="#8DC63F"/><path d="M13.5 11.598L35.428 33.579L27.356 3.598L18.928 5L13.5 11.598Z" fill="#FFF200"/><path d="M30 3L38 33L46 3L38 0L30 3Z" fill="#F7941D"/><path d="M49 3.598L40.928 33.579L62.856 11.598L57.428 5L49 3.598Z" fill="#ED1C24"/><path d="M64.981 13.5L43 35.428L72.981 27.356L71.579 18.928L64.981 13.5Z" fill="#E5007D"/><path d="M74 30L44 38L74 46L77 38L74 30Z" fill="#662D91"/></svg></div>`;
+
+const C = { pink:'#E5007D', cyan:'#00AEEF', green:'#8DC63F', orange:'#F7941D', red:'#ED1C24', purple:'#662D91' };
+
+const slides = [
+  { t:'arka', s:'Real connections, real events.', b:'Community engagement platform with on-chain reputation.\nBuilt on Arbitrum.', c:'pink', logo:true },
+  { t:'The Problem', s:'', b:'Community platforms are passive. Discord and Telegram are noise.\n\nNo proof of attendance. No skin in the game.\nHosts have no accountability. Members have no reputation.\n\nOnline engagement ≠ real engagement.', c:'red' },
+  { t:'The Solution', s:'Arka — communities that prove you showed up', b:'Hosts create communities with on-chain registries.\nMembers earn reputation by attending events IRL.\nQR code matching forces real human interaction.\n\nEverything verifiable. Everything on-chain.', c:'cyan' },
+  { t:'How It Works', s:'', b:'1. Host subscribes → creates community on-chain\n2. Members join (free browse, or paid membership)\n3. Host creates events with QR matching\n4. At events: get a number → find your match → scan QR\n5. Attendance + scans = on-chain reputation\n6. Leaderboard ranks members per community', c:'green' },
+  { t:'QR Matching', s:'The killer feature', b:'Host activates matching at an event.\nEach attendee gets a random number on screen.\nFind the person with your matching number.\nScan each other\'s QR codes.\n\nForces real conversations — not just badge-scanning.\nEvery scan is recorded on-chain.', c:'orange' },
+  { t:'Business Model', s:'Two tiers, simple revenue', b:'User (free)\n· Browse communities & events\n· Attend events, earn reputation\n· Create standalone events\n\nCommunity Host (15 USDC/mo)\n· Create & manage communities\n· Charge membership fees to members\n· Meeting rooms, facility management\n· Coffee tabs with on-chain settlement\n· Content monetization\n· Encrypted event data on Arweave\n· Advanced calendar, analytics', c:'purple' },
+  { t:'On-Chain Architecture', s:'Arbitrum Sepolia → Mainnet', b:'UserProfileNFT — ERC-721, per-community reputation, badges\nCommunityRegistry — events, attendance, leaderboard\n\nDynamic SDK — embedded wallets, email sign-in\nPaymaster — gasless transactions for users\nArweave — encrypted event data persistence (premium)\n\nContracts deployed. Live on testnet.', c:'cyan' },
+  { t:'Tech Stack', s:'', b:'Frontend: Next.js, TypeScript, Tailwind CSS\nAuth: Dynamic wallet SDK (email + wallet)\nContracts: Solidity, Foundry, Arbitrum\nStorage: Arweave via Irys (encrypted)\nMini App: Telegram WebApp SDK\nPayments: USDC on Arbitrum', c:'green' },
+  { t:'Live Demo', s:'', b:'Web: arka.claws.page\nTelegram: @arka_telegram_bot\n\nContracts on Arbitrum Sepolia:\nUserProfileNFT: 0xa692...bcf2\nCommunityRegistry: 0xe98e...3edc\n\nTry it now — sign in, create a community, host an event.', c:'pink' },
+  { t:'Roadmap', s:'', b:'Now: MVP + Dynamic wallet + contracts deployed\nNext: Mainnet deploy, real USDC payments, paymaster\nQ3: Pro features (rooms, tabs, content, Arweave)\nQ4: Multi-chain, DAO governance for platform fees\n\nOpen source. Community-driven. Built to last.', c:'orange' },
+  { t:'Thank You', s:'arka.claws.page', b:'Real connections, real events.\n\nBuilt on Arbitrum · Powered by Dynamic', c:'pink', logo:true },
+];
+
+let cur = 0;
+
+function render() {
+  const s = slides[cur];
+  const color = C[s.c] || C.pink;
+  document.getElementById('slide').innerHTML = `
+    <p class="slide-num">${cur+1} / ${slides.length}</p>
+    ${s.logo ? LOGO : ''}
+    <h1 style="color:${cur===0?'#1a1a2e':color}">${s.t}</h1>
+    ${s.s ? `<p class="sub">${s.s}</p>` : ''}
+    <div class="body">${s.b}</div>
+    <div class="accent-bar" style="background:${color}"></div>
+  `;
+  document.getElementById('prev').disabled = cur === 0;
+  document.getElementById('next').disabled = cur === slides.length - 1;
+  document.getElementById('next').style.color = color;
+
+  const dots = document.getElementById('dots');
+  dots.innerHTML = slides.map((_, i) =>
+    `<button class="dot" onclick="jump(${i})" style="width:${i===cur?20:8}px;background:${i===cur?color:'#ddd'}"></button>`
+  ).join('');
+}
+
+function go(d) { cur = Math.max(0, Math.min(slides.length-1, cur+d)); render(); }
+function jump(i) { cur = i; render(); }
+render();
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') go(1);
+  if (e.key === 'ArrowLeft') go(-1);
+});
+</script>
+</body>
+</html>
