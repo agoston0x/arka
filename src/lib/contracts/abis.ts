@@ -47,7 +47,7 @@ export const CommunityRegistry_ABI = [
 export const CONTRACTS = {
   chainId: 421614,
   rpcUrl: 'https://sepolia-rollup.arbitrum.io/rpc',
-  // TODO: Deploy and fill these addresses
-  UserProfileNFT: '0x0000000000000000000000000000000000000000' as `0x${string}`,
-  CommunityRegistry: '0x0000000000000000000000000000000000000000' as `0x${string}`,
+  UserProfileNFT: '0xa69236efd3fb58c9c58c0eacc6336b423235bcf2' as `0x${string}`,
+  CommunityRegistry: '0xe98e5e346eb2bd88177980860ff08242c6273edc' as `0x${string}`,
+  deployer: '0xfC6e72A7CC4f3DB0F30F04C8c59CdF83C8177B05' as `0x${string}`,
 } as const;

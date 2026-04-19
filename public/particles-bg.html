@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>arka — particles background</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #fff; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<script>
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+let W, H, dpr, particles = [];
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const N = Math.min(80, Math.max(30, Math.floor(W * H / 25000)));
+  particles = Array.from({ length: N }, () => ({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: 1 + Math.random() * 2.5,
+    vx: (Math.random() - 0.5) * 0.25,
+    vy: (Math.random() - 0.5) * 0.25,
+    a: 0.15 + Math.random() * 0.25,
+  }));
+}
+resize();
+addEventListener('resize', resize);
+
+function frame() {
+  ctx.clearRect(0, 0, W, H);
+
+  for (const p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    if (p.x < -5) p.x = W + 5;
+    else if (p.x > W + 5) p.x = -5;
+    if (p.y < -5) p.y = H + 5;
+    else if (p.y > H + 5) p.y = -5;
+
+    ctx.fillStyle = `rgba(160, 170, 180, ${p.a})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, 6.283);
+    ctx.fill();
+  }
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>

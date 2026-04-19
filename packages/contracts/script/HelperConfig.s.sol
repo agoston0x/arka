@@ -46,8 +46,9 @@ contract HelperConfig is Script, CodeConstants {
     }
 
     function getArbSepoliaConfig() public view returns (NetworkConfig memory) {
+        uint256 pk = vm.envUint("PRIVATE_KEY");
         return NetworkConfig({
-            deployerPrivateKey: vm.envUint("PRIVATE_KEY"), deployer: 0xBbCbB8362Dbd3a3Fcbc7AE9c0D808c6c214Ed3E2
+            deployerPrivateKey: pk, deployer: vm.addr(pk)
         });
     }
 

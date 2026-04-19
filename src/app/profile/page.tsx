@@ -4,44 +4,28 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import ArkaLogo, { ArkaMiniLogo } from '@/components/ArkaLogo';
+import { ArkaMiniLogo } from '@/components/ArkaLogo';
 import { SectionCard } from '@/components/SectionCard';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ToastProvider';
-import { HostIcon, RankBadge } from '@/components/Icons';
-import {
-  communities,
-  currentUserId,
-  memberships,
-  meetups,
-  formatDate,
-  formatDateTime,
-  getCommunityById,
-  isUpcomingMeetup,
-  truncateAddress,
-  getCommunityLeaderboard,
-} from '@/lib/mock-data';
+import { HostIcon } from '@/components/Icons';
+import { truncateAddress } from '@/lib/mock-data';
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const { pushToast } = useToast();
-  const [expandedCommunity, setExpandedCommunity] = useState<string | null>(null);
-  const [showHostModal, setShowHostModal] = useState(false);
   const [showUserInfo, setShowUserInfo] = useState(false);
+  const [showHostModal, setShowHostModal] = useState(false);
+  const [isHost, setIsHost] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [communities, setCommunities] = useState<{ name: string; desc: string }[]>([]);
 
   if (!user) {
     router.replace('/');
     return null;
   }
-
-  const joined = memberships.filter((entry) => entry.userId === currentUserId);
-  const joinedCommunityIds = new Set(joined.map((entry) => entry.communityId));
-
-  const upcoming = meetups
-    .filter((event) => joinedCommunityIds.has(event.communityId) && isUpcomingMeetup(event.datetime))
-    .sort((a, b) => +new Date(a.datetime) - +new Date(b.datetime))
-    .slice(0, 4);
 
   return (
     <AppShell activeTab="home">
@@ -55,17 +39,12 @@ export default function ProfilePage() {
         </button>
       </header>
 
-      {/* User card — only visible when username tapped */}
+      {/* Wallet info */}
       {showUserInfo && (
         <SectionCard>
           <p className="text-sm text-black/70">Wallet</p>
-          <p className="mt-1 text-lg font-semibold">{truncateAddress(user.address)}</p>
-          <div className="mt-3 flex items-center justify-between text-sm text-black/70">
-            <span>Member since {formatDate(user.memberSince)}</span>
-            <span className="rounded-full bg-arka-pink/10 px-2 py-1 text-xs font-semibold text-arka-pink">
-              {user.nftBadge}
-            </span>
-          </div>
+          <p className="mt-1 font-mono text-sm font-semibold">{truncateAddress(user.address)}</p>
+          <p className="mt-2 text-xs text-black/40">Connected via Dynamic</p>
           <button
             onClick={signOut}
             className="mt-3 w-full rounded-xl border border-black/10 py-2 text-sm text-black/50 transition hover:bg-black/5"
@@ -76,125 +55,88 @@ export default function ProfilePage() {
       )}
 
       {/* Host section */}
-      <SectionCard>
-        {user.isHost ? (
-          <Link
-            href="/dashboard"
-            className="flex items-center justify-between"
-          >
-            <div>
-              <div className="flex items-center gap-2">
-              <HostIcon className="h-4 w-4 text-arka-pink" />
-              <p className="font-semibold text-arka-pink">Host Dashboard</p>
-            </div>
-              <p className="mt-1 text-sm text-black/55">Manage your community</p>
-            </div>
-            <span className="text-black/30">→</span>
-          </Link>
-        ) : (
-          <button
-            onClick={() => setShowHostModal(true)}
-            className="w-full text-left"
-          >
-            <p className="font-semibold text-arka-text">Become a Host</p>
+      {!isHost ? (
+        <SectionCard>
+          <button onClick={() => setShowHostModal(true)} className="w-full text-left">
+            <p className="font-semibold text-arka-text">Become a Community Host</p>
             <p className="mt-1 text-sm text-black/55">
-              Stake 5 USDC for 30 days to create your own community
+              Create your own community, manage events, charge memberships, and more.
             </p>
             <span className="mt-2 inline-block rounded-full bg-arka-pink/10 px-3 py-1 text-xs font-semibold text-arka-pink">
-              Start Hosting →
+              15 USDC/mo →
             </span>
           </button>
-        )}
-      </SectionCard>
+        </SectionCard>
+      ) : (
+        <>
+          <SectionCard>
+            <Link href="/dashboard" className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <HostIcon className="h-4 w-4 text-arka-pink" />
+                  <p className="font-semibold text-arka-pink">Host Dashboard</p>
+                </div>
+                <p className="mt-1 text-sm text-black/55">
+                  {communities.length} {communities.length === 1 ? 'community' : 'communities'}
+                </p>
+              </div>
+              <span className="text-black/30">→</span>
+            </Link>
+          </SectionCard>
+        </>
+      )}
 
       {/* Communities */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">My Communities</h2>
-        {joined.map((entry) => {
-          const community = communities.find((item) => item.id === entry.communityId);
-          if (!community) return null;
-          const isExpanded = expandedCommunity === community.id;
-          const leaderboard = isExpanded ? getCommunityLeaderboard(community.id) : [];
-
-          return (
-            <div key={community.id} className="rounded-card bg-arka-card shadow-card overflow-hidden">
-              <button
-                onClick={() => setExpandedCommunity(isExpanded ? null : community.id)}
-                className="w-full p-4 text-left"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold">{community.name}</p>
-                  <span className="text-xs text-black/40">{isExpanded ? '▲' : '▼'}</span>
-                </div>
-                <div className="mt-1 flex items-center justify-between text-sm text-black/60">
-                  <span>{community.members} members</span>
-                  <span>Your rep: {entry.rep} · #{entry.rank}</span>
-                </div>
-              </button>
-
-              {isExpanded && (
-                <div className="border-t border-black/5 px-4 pb-4 pt-3">
-                  <p className="mb-2 text-xs font-semibold uppercase text-black/40">Leaderboard</p>
-                  <div className="space-y-2">
-                    {leaderboard.slice(0, 10).map((row, i) => (
-                      <div
-                        key={row.user.id}
-                        className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm ${
-                          row.user.id === currentUserId
-                            ? 'bg-arka-pink/10 font-semibold text-arka-pink'
-                            : 'text-black/70'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <RankBadge rank={row.rank} />
-                          <span>{row.user.username}</span>
-                        </div>
-                        <span>{row.rep} rep</span>
-                      </div>
-                    ))}
-                  </div>
-                  <Link
-                    href={`/community/${community.id}`}
-                    className="mt-3 block text-center text-xs font-semibold text-arka-pink"
-                  >
-                    View Community →
-                  </Link>
-                </div>
-              )}
+      {communities.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">My Communities</h2>
+          {communities.map((c, i) => (
+            <div key={i} className="rounded-card bg-arka-card p-4 shadow-card">
+              <p className="font-semibold">{c.name}</p>
+              <p className="mt-1 text-sm text-black/55">{c.desc}</p>
             </div>
-          );
-        })}
-      </section>
+          ))}
+        </section>
+      )}
 
-      {/* Upcoming meetups */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Upcoming Meetups</h2>
-        {upcoming.length === 0 && (
-          <p className="text-sm text-black/40">No upcoming meetups</p>
-        )}
-        {upcoming.map((event) => {
-          const community = getCommunityById(event.communityId);
-          return (
-            <Link
-              href={`/meetup/${event.id}`}
-              key={event.id}
-              className="block rounded-card bg-arka-card p-4 shadow-card transition hover:translate-y-[-1px]"
-            >
-              <p className="font-semibold">{event.name}</p>
-              <p className="mt-1 text-sm text-black/70">{community?.name}</p>
-              <p className="mt-1 text-sm text-black/65">{formatDateTime(event.datetime)}</p>
-            </Link>
-          );
-        })}
-      </section>
+      {/* Empty state for new users */}
+      {!isHost && communities.length === 0 && (
+        <SectionCard>
+          <p className="text-center text-sm text-black/40">
+            You haven't joined any communities yet. Explore or become a host!
+          </p>
+          <Link
+            href="/communities"
+            className="mt-3 block w-full rounded-xl bg-arka-card py-3 text-center text-sm font-semibold text-arka-text transition hover:bg-black/5"
+          >
+            Explore Communities
+          </Link>
+        </SectionCard>
+      )}
+
+      {/* Create event — anyone can do this */}
+      <SectionCard>
+        <button
+          onClick={() => pushToast('Event creation coming soon!')}
+          className="w-full text-left"
+        >
+          <p className="font-semibold text-arka-text">Create an Event</p>
+          <p className="mt-1 text-sm text-black/55">
+            Start a standalone meetup — no community needed.
+          </p>
+        </button>
+      </SectionCard>
 
       {/* Host Modal */}
       {showHostModal && (
-        <HostModal
+        <HostSubscriptionModal
           onClose={() => setShowHostModal(false)}
-          onSuccess={() => {
+          onSuccess={(name, desc) => {
             setShowHostModal(false);
-            pushToast('Community created! You are now a host.');
+            setIsHost(true);
+            setIsPremium(true);
+            setCommunities((prev) => [...prev, { name, desc }]);
+            pushToast(`${name} created! You are now a host.`);
           }}
         />
       )}
@@ -202,56 +144,48 @@ export default function ProfilePage() {
   );
 }
 
-function HostModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-  const { becomeHost } = useAuth();
+function HostSubscriptionModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: (name: string, desc: string) => void;
+}) {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
-  const [staked, setStaked] = useState(false);
-  const [staking, setStaking] = useState(false);
+  const [paying, setPaying] = useState(false);
 
-  const handleStake = () => {
-    setStaking(true);
+  const handleSubscribe = () => {
+    if (!name.trim() || !desc.trim()) return;
+    setPaying(true);
+    // TODO: Real USDC payment via Dynamic wallet
     setTimeout(() => {
-      setStaked(true);
-      setStaking(false);
-    }, 1500);
-  };
-
-  const handleSubmit = () => {
-    if (!name.trim() || !desc.trim() || !staked) return;
-    becomeHost(name, desc);
-    onSuccess();
+      onSuccess(name, desc);
+    }, 2000);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="mb-1 text-xl font-bold text-arka-text">Create Community</h2>
-        <p className="mb-5 text-sm text-black/50">Stake 5 USDC for 30 days to start hosting</p>
+        <h2 className="text-xl font-bold text-arka-text">Become a Host</h2>
+        <p className="mt-1 text-sm text-black/50">Create your community with all pro features</p>
 
-        <div className="space-y-4">
-          {/* Stake step */}
-          <div className={`rounded-xl border p-4 ${staked ? 'border-green-300 bg-green-50' : 'border-black/10 bg-arka-card'}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold">Stake 5 USDC</p>
-                <p className="text-xs text-black/50">Locked for 30 days, refundable after</p>
-              </div>
-              {staked ? (
-                <span className="text-sm font-semibold text-green-600">✓ Staked</span>
-              ) : (
-                <button
-                  onClick={handleStake}
-                  disabled={staking}
-                  className="rounded-full bg-arka-pink px-4 py-2 text-xs font-semibold text-white transition hover:bg-arka-pink/90 disabled:opacity-50"
-                >
-                  {staking ? 'Staking...' : 'Stake'}
-                </button>
-              )}
-            </div>
+        <div className="mt-4 rounded-xl bg-arka-card p-4">
+          <p className="text-sm font-semibold">What you get:</p>
+          <div className="mt-2 space-y-1 text-sm text-black/55">
+            <p>· Create & manage communities</p>
+            <p>· Charge membership fees</p>
+            <p>· Meeting room & facility management</p>
+            <p>· Coffee tabs with on-chain settlement</p>
+            <p>· Content monetization (slides, recordings)</p>
+            <p>· Persistent event data on Arweave</p>
+            <p>· Advanced calendar with RSVPs</p>
+            <p>· Engagement analytics</p>
           </div>
+          <p className="mt-3 text-lg font-bold text-arka-pink">15 USDC/mo</p>
+        </div>
 
-          {/* Community info */}
+        <div className="mt-4 space-y-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-black/70">Community Name</label>
             <input
@@ -262,7 +196,6 @@ function HostModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () 
               className="w-full rounded-xl border border-black/10 bg-arka-card px-4 py-3 text-sm outline-none focus:border-arka-pink focus:ring-1 focus:ring-arka-pink"
             />
           </div>
-
           <div>
             <label className="mb-1 block text-sm font-medium text-black/70">Description</label>
             <textarea
@@ -270,18 +203,19 @@ function HostModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () 
               onChange={(e) => setDesc(e.target.value)}
               placeholder="What's your community about?"
               rows={3}
-              className="w-full rounded-xl border border-black/10 bg-arka-card px-4 py-3 text-sm outline-none focus:border-arka-pink focus:ring-1 focus:ring-arka-pink resize-none"
+              className="w-full resize-none rounded-xl border border-black/10 bg-arka-card px-4 py-3 text-sm outline-none focus:border-arka-pink focus:ring-1 focus:ring-arka-pink"
             />
           </div>
-
-          <button
-            onClick={handleSubmit}
-            disabled={!name.trim() || !desc.trim() || !staked}
-            className="w-full rounded-xl bg-arka-pink py-3 text-sm font-semibold text-white transition hover:bg-arka-pink/90 disabled:opacity-40"
-          >
-            Create Community
-          </button>
         </div>
+
+        <button
+          onClick={handleSubscribe}
+          disabled={!name.trim() || !desc.trim() || paying}
+          className="mt-4 w-full rounded-xl bg-arka-pink py-3 text-sm font-semibold text-white transition hover:bg-arka-pink/90 disabled:opacity-40"
+        >
+          {paying ? 'Processing payment...' : 'Subscribe & Create — 15 USDC/mo'}
+        </button>
+        <p className="mt-2 text-center text-xs text-black/30">Cancel anytime. Data persists even after cancellation.</p>
       </div>
     </div>
   );

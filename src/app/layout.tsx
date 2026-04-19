@@ -4,6 +4,7 @@ import { ToastProvider } from '@/components/ToastProvider';
 import { SplashWrapper } from '@/components/SplashWrapper';
 import { Providers } from '@/components/Providers';
 import TelegramInit from '@/components/TelegramInit';
+import ParticlesBg from '@/components/ParticlesBg';
 
 export const metadata: Metadata = {
   title: 'Arka',
@@ -20,7 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <ToastProvider>
             <TelegramInit />
-          <SplashWrapper>{children}</SplashWrapper>
+            <ParticlesBg />
+            <div className="relative z-10">
+              <SplashWrapper>{children}</SplashWrapper>
+            </div>
           </ToastProvider>
         </Providers>
       </body>
