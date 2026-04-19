@@ -25,5 +25,55 @@
     "mingleActive": false,
     "minglePairs": [],
     "ended": false
+  },
+  "mo5nh9c541b7t": {
+    "id": "mo5nh9c541b7t",
+    "hostTgId": "6515296517",
+    "hostAddress": null,
+    "communityId": null,
+    "name": "Katowice meetup ",
+    "datetime": "2026-04-19T12:55",
+    "location": "Katowice ",
+    "ephemeral": true,
+    "createdAt": "2026-04-19T10:55:53.477Z",
+    "attendees": {
+      "6515296517": {
+        "checkedIn": false,
+        "joined": true,
+        "joinedAt": "2026-04-19T10:55:54.392Z",
+        "verifications": [],
+        "mingles": []
+      }
+    },
+    "mingleActive": false,
+    "minglePairs": [],
+    "ended": false,
+    "chatMessages": [],
+    "poll": null
+  },
+  "mo5nnbd83hbj3": {
+    "id": "mo5nnbd83hbj3",
+    "hostTgId": "6515296517",
+    "hostAddress": null,
+    "communityId": null,
+    "name": "Ysizjs",
+    "datetime": "2026-04-19T13:00",
+    "location": "Jsjs",
+    "ephemeral": true,
+    "createdAt": "2026-04-19T11:00:36.044Z",
+    "attendees": {
+      "6515296517": {
+        "checkedIn": false,
+        "joined": true,
+        "joinedAt": "2026-04-19T11:00:36.566Z",
+        "verifications": [],
+        "mingles": []
+      }
+    },
+    "mingleActive": false,
+    "minglePairs": [],
+    "ended": false,
+    "chatMessages": [],
+    "poll": null
   }
 }

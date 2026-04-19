@@ -146,6 +146,27 @@ export default function MiniAppPage() {
         </button>
       </section>
 
+      {/* Go Pro */}
+      {!isProHost && (
+        <section className="px-5 pb-5">
+          <div className="rounded-2xl bg-gradient-to-br from-arka-pink to-arka-cyan p-5 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold">🌟 Go Pro</h3>
+                <p className="mt-1 text-xs opacity-90">Create communities & host events</p>
+                <p className="mt-1 text-[10px] opacity-75">0.001 ETH · one-time</p>
+              </div>
+              <button
+                onClick={() => router.push('/miniapp/profile')}
+                className="rounded-full bg-white px-4 py-2 text-xs font-bold text-arka-pink"
+              >
+                Upgrade
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Updates */}
       <section className="px-5 pb-5">
         <p className="mb-2 text-xs font-bold uppercase tracking-wider text-black/30">Updates</p>
@@ -255,23 +276,22 @@ export default function MiniAppPage() {
       {/* Quick actions */}
       <section className="space-y-3 px-5 pb-10">
         <p className="mb-1 text-xs font-bold uppercase tracking-wider text-black/30">Quick Actions</p>
-        {[
-          { Icon: CommunityIcon, color: 'cyan', title: 'Browse Communities', path: '/miniapp/communities' },
-          { Icon: MeetupIcon, color: 'green', title: 'Upcoming Events', path: '/miniapp/event/mock-eth-budapest' },
-          { Icon: TrophyIcon, color: 'purple', title: 'Leaderboard', path: '/miniapp/leaderboard' },
-          { Icon: QrIcon, color: 'orange', title: 'Scan QR Code', path: '/miniapp/event/mock-eth-budapest' },
-        ].map(({ Icon, color, title, path }) => (
-          <button
-            key={title}
-            onClick={() => router.push(path)}
-            className="flex w-full items-center gap-3 rounded-xl bg-arka-card p-4 text-left transition active:scale-[0.98]"
-          >
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-arka-${color}/15`}>
-              <Icon className={`h-5 w-5 text-arka-${color}`} />
-            </div>
-            <span className="text-sm font-semibold text-arka-text">{title}</span>
-          </button>
-        ))}
+        <button onClick={() => router.push('/miniapp/communities')} className="flex w-full items-center gap-3 rounded-xl bg-arka-card p-4 text-left transition active:scale-[0.98]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#00AEEF]/15"><CommunityIcon className="h-5 w-5 text-arka-cyan" /></div>
+          <span className="text-sm font-semibold text-arka-text">Browse Communities</span>
+        </button>
+        <button onClick={() => router.push('/miniapp/event/mock-eth-budapest')} className="flex w-full items-center gap-3 rounded-xl bg-arka-card p-4 text-left transition active:scale-[0.98]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#8DC63F]/15"><MeetupIcon className="h-5 w-5 text-arka-green" /></div>
+          <span className="text-sm font-semibold text-arka-text">Upcoming Events</span>
+        </button>
+        <button onClick={() => router.push('/miniapp/leaderboard')} className="flex w-full items-center gap-3 rounded-xl bg-arka-card p-4 text-left transition active:scale-[0.98]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E5007D]/15"><TrophyIcon className="h-5 w-5 text-arka-pink" /></div>
+          <span className="text-sm font-semibold text-arka-text">Leaderboard</span>
+        </button>
+        <button onClick={() => router.push('/miniapp/event/mock-eth-budapest')} className="flex w-full items-center gap-3 rounded-xl bg-arka-card p-4 text-left transition active:scale-[0.98]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F7941D]/15"><QrIcon className="h-5 w-5 text-arka-orange" /></div>
+          <span className="text-sm font-semibold text-arka-text">Scan QR Code</span>
+        </button>
       </section>
 
       {/* Event creation modal */}

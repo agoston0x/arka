@@ -281,8 +281,8 @@ export default function EventPage() {
         </div>
       )}
 
-      {/* Not checked in */}
-      {!state.checkedIn && !event.ended && (
+      {/* Not checked in (skip for host — auto checked in) */}
+      {!state.checkedIn && !state.isHost && !event.ended && (
         <div className="mb-6">
           <button
             onClick={handleCheckIn}

@@ -113,6 +113,13 @@ app.post('/events', (req, res) => {
   }
 
   const id = generateId();
+  // Auto-check-in the host
+  const hostId = hostTgId || hostAddress;
+  const attendees = {};
+  if (hostId) {
+    attendees[hostId] = { checkedIn: true, checkedInAt: new Date().toISOString(), verifications: [], mingles: [], isHost: true };
+  }
+
   events[id] = {
     id,
     hostTgId: hostTgId || null,
@@ -123,7 +130,7 @@ app.post('/events', (req, res) => {
     location,
     ephemeral: ephemeral || false,
     createdAt: new Date().toISOString(),
-    attendees: {},  // userId/userAddress -> { checkedIn: bool, verifications: [], mingles: [] }
+    attendees,
     mingleActive: false,
     minglePairs: [],
     ended: false,
