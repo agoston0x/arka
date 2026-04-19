@@ -23,13 +23,17 @@ const letterPaths = [
 
 const LETTER_COLOR = '#E5007D';
 
-// Timing (ms)
-const RAY_STAGGER = 130;
-const RAY_DUR = 220;
-const LETTER_START = rayPaths.length * RAY_STAGGER + 200;
-const LETTER_STAGGER = 90;
-const LETTER_DUR = 420;
-const TOTAL_DUR = LETTER_START + letterPaths.length * LETTER_STAGGER + LETTER_DUR + 400;
+// Timing (ms) — one cycle
+const RAY_STAGGER = 100;
+const RAY_DUR = 180;
+const RAYS_TOTAL = rayPaths.length * RAY_STAGGER + RAY_DUR;
+const LETTER_PAUSE = 150; // pause after rays before text
+const LETTER_STAGGER = 70;
+const LETTER_DUR = 350;
+const LETTERS_TOTAL = letterPaths.length * LETTER_STAGGER + LETTER_DUR;
+const HOLD = 400; // hold everything visible
+const FADE_OUT = 300; // fade everything out before next loop
+const CYCLE = RAYS_TOTAL + LETTER_PAUSE + LETTERS_TOTAL + HOLD + FADE_OUT;
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
@@ -41,6 +45,16 @@ interface Props {
 export default function ArkaSplash({ onFinished }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [fading, setFading] = useState(false);
+  const readyRef = useRef(false);
+
+  // Listen for page ready signal
+  useEffect(() => {
+    const handler = () => {
+      readyRef.current = true;
+    };
+    window.addEventListener('arka-ready', handler);
+    return () => window.removeEventListener('arka-ready', handler);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -70,31 +84,39 @@ export default function ArkaSplash({ onFinished }: Props) {
     let animId = 0;
 
     function drawFrame(elapsed: number) {
+      // Loop: get position within current cycle
+      const cyclePos = elapsed % CYCLE;
+
+      // Calculate global fade-out at end of cycle
+      const fadeOutStart = CYCLE - FADE_OUT;
+      const cycleFade = cyclePos > fadeOutStart ? 1 - clamp01((cyclePos - fadeOutStart) / FADE_OUT) : 1;
+
       ctx!.clearRect(0, 0, DISPLAY_W, DISPLAY_H);
       ctx!.save();
       ctx!.translate(OFFSET_X, OFFSET_Y);
       ctx!.scale(SCALE, SCALE);
 
-      // Rays
+      // Rays — animate left to right (index 0 = leftmost)
       rayPath2Ds.forEach((path, i) => {
         const t0 = i * RAY_STAGGER;
-        const t = clamp01((elapsed - t0) / RAY_DUR);
+        const t = clamp01((cyclePos - t0) / RAY_DUR);
         if (t <= 0) return;
         ctx!.save();
-        ctx!.globalAlpha = easeOutCubic(t);
+        ctx!.globalAlpha = easeOutCubic(t) * cycleFade;
         ctx!.fillStyle = rayColors[i];
         ctx!.fill(path, 'evenodd');
         ctx!.restore();
       });
 
-      // Letters
+      // Letters — appear after rays
+      const letterStart = RAYS_TOTAL + LETTER_PAUSE;
       letterPath2Ds.forEach((path, i) => {
-        const t0 = LETTER_START + i * LETTER_STAGGER;
-        const t = clamp01((elapsed - t0) / LETTER_DUR);
+        const t0 = letterStart + i * LETTER_STAGGER;
+        const t = clamp01((cyclePos - t0) / LETTER_DUR);
         if (t <= 0) return;
         const eased = easeOutCubic(t);
         ctx!.save();
-        ctx!.globalAlpha = eased;
+        ctx!.globalAlpha = eased * cycleFade;
         ctx!.translate(0, (1 - eased) * 3);
         ctx!.fillStyle = LETTER_COLOR;
         ctx!.fill(path, 'evenodd');
@@ -108,17 +130,21 @@ export default function ArkaSplash({ onFinished }: Props) {
       if (startTime === null) startTime = ts;
       const elapsed = ts - startTime;
       drawFrame(elapsed);
-      if (elapsed < TOTAL_DUR) {
-        animId = requestAnimationFrame(loop);
-      } else {
-        // Animation done — start fade out
-        setTimeout(() => {
+
+      // Check if page is ready — only dismiss after completing current cycle
+      if (readyRef.current) {
+        const cyclePos = elapsed % CYCLE;
+        // Wait for a natural end-of-cycle moment to fade out
+        if (cyclePos > CYCLE - FADE_OUT - 50) {
           setFading(true);
           setTimeout(() => {
             onFinished?.();
           }, 500);
-        }, 300);
+          return;
+        }
       }
+
+      animId = requestAnimationFrame(loop);
     }
 
     animId = requestAnimationFrame(loop);
@@ -131,7 +157,7 @@ export default function ArkaSplash({ onFinished }: Props) {
         fading ? 'opacity-0' : 'opacity-100'
       }`}
     >
-      <canvas ref={canvasRef} aria-label="Arka animated logo" />
+      <canvas ref={canvasRef} aria-label="arka animated logo" />
     </div>
   );
 }

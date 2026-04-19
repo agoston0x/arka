@@ -53,6 +53,11 @@ export default function TelegramInit() {
       color: '#E5007D',
       text_color: '#ffffff',
     });
+
+    // If opened inside Telegram, redirect to miniapp
+    if (tg.initDataUnsafe?.user && window.location.pathname === '/') {
+      window.location.replace('/miniapp');
+    }
   }, []);
 
   return null;

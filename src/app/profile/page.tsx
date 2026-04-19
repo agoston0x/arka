@@ -103,7 +103,7 @@ export default function ProfilePage() {
       {!isHost && communities.length === 0 && (
         <SectionCard>
           <p className="text-center text-sm text-black/40">
-            You haven't joined any communities yet. Explore or become a host!
+            You haven&apos;t joined any communities yet. Explore or become a host!
           </p>
           <Link
             href="/communities"

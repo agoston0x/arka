@@ -31,7 +31,7 @@ export function useArkaContracts() {
 
   const getProvider = useCallback(async () => {
     if (!primaryWallet) throw new Error('No wallet connected');
-    const provider = await primaryWallet.getWalletClient();
+    const provider = await (primaryWallet as any).getWalletClient();
     return provider;
   }, [primaryWallet]);
 

@@ -11,7 +11,9 @@
   "dependencies": {
     "@dynamic-labs/ethereum": "^4.77.3",
     "@dynamic-labs/sdk-react-core": "^4.77.3",
+    "html5-qrcode": "^2.3.8",
     "next": "14.2.5",
+    "qrcode.react": "^4.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
