@@ -79,23 +79,23 @@ export default function ProfilePage() {
     <main className="flex h-screen w-full flex-col bg-white max-w-md mx-auto">
       {/* Header row: avatar + info + close */}
       <header className="flex items-start justify-between px-5 pt-4 pb-3 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-arka-pink/10 text-lg font-bold text-arka-pink">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-arka-pink/10 text-2xl font-bold text-arka-pink">
             {displayName[0]?.toUpperCase()}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-base font-bold text-arka-text">{displayName}</p>
-              {isProHost && <span className="rounded-full bg-arka-pink px-2 py-0.5 text-[8px] font-bold text-white">PRO ✦</span>}
+              <p className="text-xl font-bold text-arka-text">{displayName}</p>
+              {isProHost && <span className="rounded-full bg-arka-pink px-2 py-0.5 text-[9px] font-bold text-white">PRO ✦</span>}
             </div>
             {user?.address && (
-              <button onClick={copyAddress} className="flex items-center gap-1 mt-0.5">
-                <code className="text-[10px] text-black/40 font-mono">{shortAddr}</code>
-                <span className="text-[9px] text-arka-pink font-bold">{copied ? '✓' : 'Copy'}</span>
+              <button onClick={copyAddress} className="flex items-center gap-1.5 mt-1">
+                <code className="text-sm text-black/40 font-mono">{shortAddr}</code>
+                <span className="text-xs text-arka-pink font-bold">{copied ? '✓' : 'Copy'}</span>
               </button>
             )}
             {balance !== null && (
-              <p className="text-[10px] text-black/40 mt-0.5"><span className="font-bold text-arka-text">{balance}</span> ETH</p>
+              <p className="text-sm text-black/40 mt-0.5"><span className="font-black text-arka-text text-lg">{balance}</span> ETH</p>
             )}
           </div>
         </div>
