@@ -64,7 +64,7 @@ export default function MiniAppPage() {
           onClick={() => router.push('/miniapp/profile')}
           className="flex items-center gap-1.5 rounded-full bg-arka-pink/10 px-3 py-1.5"
         >
-          <span className="text-sm font-bold text-arka-pink">{displayName}</span>
+          <span className="text-sm font-bold text-arka-pink">{isConnected ? displayName : 'Profile'}</span>
           <svg className="h-3 w-3 text-arka-pink" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
         </button>
       </header>

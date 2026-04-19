@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import ArkaLogo from '@/components/ArkaLogo';
 import { useAuth } from '@/lib/auth-context';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -13,7 +12,6 @@ export default function ProfilePage() {
   const [balance, setBalance] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
-  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     if (!user?.address || !user.address.startsWith('0x')) return;
@@ -53,6 +51,15 @@ export default function ProfilePage() {
     }
   };
 
+  const handleClose = () => {
+    const tg = (window as any).Telegram?.WebApp;
+    if (window.history.length > 1) {
+      router.back();
+    } else if (tg?.close) {
+      tg.close();
+    }
+  };
+
   const qrPayload = JSON.stringify({
     type: 'arka',
     action: 'mingle-scan',
@@ -61,42 +68,51 @@ export default function ProfilePage() {
     address: user?.address || '',
   });
 
+  // Not signed in
+  if (!isConnected) {
+    return (
+      <main className="flex h-screen w-full flex-col bg-white max-w-md mx-auto">
+        <header className="flex items-center justify-between px-5 py-4 border-b border-black/5 shrink-0">
+          <span className="text-base font-bold text-arka-text">Profile</span>
+          <button onClick={handleClose} className="text-sm text-black/40 font-medium">✕ Close</button>
+        </header>
+        <div className="flex-1 flex flex-col items-center justify-center px-8">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-arka-pink/10 text-3xl">👤</div>
+          <h2 className="mt-4 text-xl font-bold text-arka-text">Sign in to continue</h2>
+          <p className="mt-2 text-center text-sm text-black/40">Connect with email to get your embedded wallet</p>
+          <button
+            onClick={openSignIn}
+            className="mt-6 w-full max-w-xs rounded-xl bg-arka-pink py-3 text-sm font-bold text-white transition active:scale-95"
+          >
+            Sign In with Email
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // Signed in
   return (
-    <main className="mx-auto min-h-screen w-full max-w-md bg-white">
-      <header className="sticky top-0 z-40 flex items-center gap-3 bg-white/90 px-5 py-4 backdrop-blur-sm border-b border-black/5">
-        <button onClick={() => router.back()} className="text-lg">←</button>
-        <ArkaLogo size={24} />
-        <span className="text-sm font-bold text-arka-text">Profile</span>
+    <main className="flex h-screen w-full flex-col bg-white max-w-md mx-auto">
+      <header className="flex items-center justify-between px-5 py-4 border-b border-black/5 shrink-0">
+        <span className="text-base font-bold text-arka-text">Profile</span>
+        <button onClick={handleClose} className="text-sm text-black/40 font-medium">✕ Close</button>
       </header>
 
-      <section className="px-5 py-6">
-        {/* Avatar + name */}
+      <div className="flex-1 overflow-y-auto px-5 py-6">
+        {/* Name */}
         <div className="flex flex-col items-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-arka-pink/10 text-3xl font-bold text-arka-pink">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-arka-pink/10 text-2xl font-bold text-arka-pink">
             {displayName[0]?.toUpperCase()}
           </div>
-          <h2 className="mt-3 text-xl font-bold text-arka-text">{displayName}</h2>
+          <h2 className="mt-2 text-lg font-bold text-arka-text">{displayName}</h2>
           {user?.email && <p className="text-xs text-black/40">{user.email}</p>}
-          {isProHost && <span className="mt-2 rounded-full bg-arka-pink px-3 py-0.5 text-[10px] font-bold text-white">PRO HOST ✦</span>}
+          {isProHost && <span className="mt-1 rounded-full bg-arka-pink px-3 py-0.5 text-[10px] font-bold text-white">PRO HOST ✦</span>}
         </div>
-
-        {/* Not signed in with Dynamic */}
-        {!isConnected && (
-          <div className="mt-6 rounded-2xl bg-gray-50 p-5 text-center ring-1 ring-black/5">
-            <p className="text-sm font-semibold text-arka-text">Connect your wallet</p>
-            <p className="mt-1 text-xs text-black/40">Sign in with email to get an embedded wallet</p>
-            <button
-              onClick={openSignIn}
-              className="mt-3 w-full rounded-xl bg-arka-pink py-3 text-sm font-bold text-white transition active:scale-95"
-            >
-              Sign In with Email
-            </button>
-          </div>
-        )}
 
         {/* Wallet */}
         {user?.address && (
-          <div className="mt-6 rounded-2xl bg-gray-50 p-4 ring-1 ring-black/5">
+          <div className="mt-5 rounded-2xl bg-gray-50 p-4 ring-1 ring-black/5">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-black/30">Wallet</p>
               <p className="text-[10px] text-black/20">Arbitrum Sepolia</p>
@@ -115,41 +131,15 @@ export default function ProfilePage() {
         )}
 
         {/* QR Code */}
-        <div className="mt-5">
-          <button
-            onClick={() => setShowQR(!showQR)}
-            className="w-full rounded-2xl bg-white p-4 text-center shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
-          >
-            <p className="text-sm font-bold text-arka-text">{showQR ? 'Hide QR Code' : '📱 Show My QR Code'}</p>
-            <p className="text-[10px] text-black/40">For check-in & mingle at events</p>
-          </button>
-          {showQR && (
-            <div className="mt-3 flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-              <QRCodeSVG value={qrPayload} size={200} level="M" />
-              <p className="mt-3 text-xs font-semibold text-arka-text">{displayName}</p>
-              <p className="text-[10px] text-black/30">Scan to verify at events</p>
-            </div>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <div className="rounded-xl bg-arka-pink/10 p-3 text-center">
-            <p className="text-xl font-black text-arka-pink">2</p>
-            <p className="text-[9px] text-black/40">Communities</p>
-          </div>
-          <div className="rounded-xl bg-arka-cyan/10 p-3 text-center">
-            <p className="text-xl font-black text-arka-cyan">5</p>
-            <p className="text-[9px] text-black/40">Events</p>
-          </div>
-          <div className="rounded-xl bg-arka-green/10 p-3 text-center">
-            <p className="text-xl font-black text-arka-green">2,450</p>
-            <p className="text-[9px] text-black/40">Reputation</p>
-          </div>
+        <div className="mt-5 flex flex-col items-center rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-black/30 mb-3">My QR Code</p>
+          <QRCodeSVG value={qrPayload} size={180} level="M" />
+          <p className="mt-3 text-xs font-semibold text-arka-text">{displayName}</p>
+          <p className="text-[10px] text-black/30">Scan at events for check-in & mingle</p>
         </div>
 
         {/* Go Pro */}
-        {!isProHost && isConnected && (
+        {!isProHost && (
           <div className="mt-5 rounded-2xl bg-gradient-to-br from-arka-pink to-[#7B61FF] p-5 text-white shadow-lg">
             <h3 className="text-base font-bold">🌟 Go Pro</h3>
             <p className="mt-1 text-xs opacity-90">Create your own community & host events</p>
@@ -164,13 +154,14 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Sign Out */}
         <button
           onClick={signOut}
-          className="mt-6 w-full rounded-xl border border-black/10 py-3 text-sm font-medium text-black/40 transition hover:bg-black/5"
+          className="mt-5 w-full rounded-xl border border-black/10 py-3 text-sm font-medium text-black/40 transition hover:bg-black/5"
         >
           Sign Out
         </button>
-      </section>
+      </div>
     </main>
   );
 }
