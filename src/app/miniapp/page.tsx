@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import ArkaLogo from '@/components/ArkaLogo';
+import { QRCodeSVG } from 'qrcode.react';
 
 const API_URL = 'https://arka-api.claws.page';
 
@@ -11,6 +11,7 @@ export default function MiniAppPage() {
   const [isTelegram, setIsTelegram] = useState<boolean | null>(null);
   const [activeTab, setActiveTab] = useState<'home' | 'events' | 'communities' | 'leaderboard'>('home');
   const [showAllUpdates, setShowAllUpdates] = useState(false);
+  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const router = useRouter();
   const { user, openSignIn, isProHost, isConnected } = useAuth();
 
@@ -31,7 +32,6 @@ export default function MiniAppPage() {
   const tgUser = typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user : null;
   const displayName = tgUser?.first_name || user?.username?.replace('@', '') || 'there';
 
-  // Not signed in
   if (!isConnected && !tgUser) {
     return (
       <main className="flex h-screen w-full flex-col items-center justify-center bg-white px-8">
@@ -45,21 +45,30 @@ export default function MiniAppPage() {
     );
   }
 
+  const goToTab = (tab: typeof activeTab, focus?: string) => {
+    setActiveTab(tab);
+    if (focus && tab === 'events') setExpandedEvent(focus);
+  };
+
   const updates = [
-    { emoji: '🎉', title: 'New Event: ETH Budapest Meetup', sub: 'Tomorrow, 18:00 · 23 attending', bg: 'bg-arka-pink/5', ring: 'ring-arka-pink/10' },
-    { emoji: '📈', title: 'Your reputation rose +120 this week', sub: "You're now #3 in ETH Budapest", bg: 'bg-[#8DC63F]/5', ring: 'ring-[#8DC63F]/10' },
-    { emoji: '👥', title: '3 new members joined Arbitrum Builders', sub: 'Community now has 127 members', bg: 'bg-[#00AEEF]/5', ring: 'ring-[#00AEEF]/10' },
-    { emoji: '🏆', title: 'alex.eth overtook you on the leaderboard', sub: 'Attend more events to reclaim #2!', bg: 'bg-amber-50', ring: 'ring-amber-200/30' },
-    { emoji: '🎯', title: '+80 rep from DeFi Deep Dive check-in', sub: 'Total reputation: 2,450', bg: 'bg-[#8DC63F]/5', ring: 'ring-[#8DC63F]/10' },
+    { emoji: '🎉', title: 'New Event: ETH Budapest Meetup', sub: 'Tomorrow, 18:00 · 23 attending', action: () => goToTab('events', 'eth-budapest-meetup') },
+    { emoji: '📈', title: 'Your reputation rose +120 this week', sub: "You're now #3 in ETH Budapest", action: () => goToTab('leaderboard') },
+    { emoji: '👥', title: '3 new members joined Arbitrum Builders', sub: 'Community now has 127 members', action: () => goToTab('communities') },
+    { emoji: '🏆', title: 'alex.eth overtook you on the leaderboard', sub: 'Attend more events to reclaim #2!', action: () => goToTab('leaderboard') },
+    { emoji: '🎯', title: '+80 rep from DeFi Deep Dive check-in', sub: 'Total reputation: 2,450', action: () => goToTab('events', 'defi-deep-dive') },
   ];
 
   const visibleUpdates = showAllUpdates ? updates : updates.slice(0, 3);
 
+  const bgForTab = (tab: string) => activeTab === tab;
+
   return (
     <main className="flex h-screen w-full flex-col bg-white max-w-md mx-auto">
-      {/* Header — fixed */}
+      {/* Header */}
       <header className="flex items-center justify-between px-5 py-3 border-b border-black/5 shrink-0">
-        <img src="/arka-logo.png" alt="arka" className="h-12" />
+        <button onClick={() => setActiveTab('home')}>
+          <img src="/arka-logo.png" alt="arka" className="h-12" />
+        </button>
         <button
           onClick={() => router.push('/miniapp/profile')}
           className="flex items-center gap-1.5 rounded-full bg-arka-pink/10 px-3 py-1.5"
@@ -69,52 +78,46 @@ export default function MiniAppPage() {
         </button>
       </header>
 
-      {/* Content — scrollable middle */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
         {activeTab === 'home' && (
           <>
-            {/* Go Pro */}
             {!isProHost && (
-              <div className="mb-5 rounded-2xl bg-gradient-to-br from-arka-pink to-[#7B61FF] p-5 text-white shadow-lg">
+              <div className="mb-4 rounded-2xl bg-gradient-to-br from-arka-pink to-[#7B61FF] p-4 text-white shadow-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-base font-bold">🌟 Go Pro</h3>
-                    <p className="mt-1 text-xs opacity-90">Create communities & host events</p>
-                    <p className="mt-1 text-[10px] opacity-70">0.001 ETH · one-time</p>
+                    <h3 className="text-sm font-bold">🌟 Go Pro</h3>
+                    <p className="mt-0.5 text-[10px] opacity-90">Create communities & host events</p>
+                    <p className="text-[9px] opacity-70">0.001 ETH · one-time</p>
                   </div>
-                  <button
-                    onClick={() => router.push('/miniapp/profile')}
-                    className="rounded-full bg-white px-4 py-2 text-xs font-bold text-arka-pink"
-                  >
+                  <button onClick={() => router.push('/miniapp/profile')} className="rounded-full bg-white px-4 py-1.5 text-xs font-bold text-arka-pink">
                     Upgrade
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Next Event */}
-            <div className="mb-5">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-black/30">Next Event</p>
+            <div className="mb-4">
+              <p className="mb-2 text-[9px] font-bold uppercase tracking-wider text-black/25">Next Event</p>
               <button
-                onClick={() => router.push('/miniapp/event/mock-eth-budapest')}
-                className="w-full rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
+                onClick={() => goToTab('events', 'eth-budapest-meetup')}
+                className="w-full rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 active:scale-[0.98]"
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-bold text-arka-text">ETH Budapest Meetup</p>
-                    <p className="mt-0.5 text-xs text-black/40">Tomorrow, 18:00 · 23 attending</p>
+                    <p className="text-[10px] text-black/40">Tomorrow, 18:00 · 23 attending</p>
                   </div>
-                  <span className="rounded-full bg-arka-green/15 px-2 py-0.5 text-[10px] font-bold text-arka-green">RSVP&apos;d</span>
+                  <span className="rounded-full bg-[#8DC63F]/15 px-2 py-0.5 text-[10px] font-bold text-arka-green">RSVP&apos;d</span>
                 </div>
               </button>
             </div>
 
-            {/* Updates */}
             <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-black/30">Updates</p>
+              <p className="mb-2 text-[9px] font-bold uppercase tracking-wider text-black/25">Updates</p>
               <div className="space-y-2">
                 {visibleUpdates.map((u, i) => (
-                  <div key={i} className={`rounded-xl ${u.bg} p-3 ring-1 ${u.ring}`}>
+                  <button key={i} onClick={u.action} className="w-full rounded-xl bg-gray-50 p-3 text-left ring-1 ring-black/5 active:bg-gray-100">
                     <div className="flex items-start gap-2">
                       <span className="text-sm">{u.emoji}</span>
                       <div>
@@ -122,22 +125,16 @@ export default function MiniAppPage() {
                         <p className="text-[10px] text-black/40">{u.sub}</p>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
               {!showAllUpdates && updates.length > 3 && (
-                <button
-                  onClick={() => setShowAllUpdates(true)}
-                  className="mt-2 w-full text-center text-[10px] font-semibold text-arka-pink"
-                >
+                <button onClick={() => setShowAllUpdates(true)} className="mt-2 w-full text-center text-[10px] font-semibold text-arka-pink">
                   Show more ↓
                 </button>
               )}
               {showAllUpdates && (
-                <button
-                  onClick={() => setShowAllUpdates(false)}
-                  className="mt-2 w-full text-center text-[10px] font-semibold text-black/30"
-                >
+                <button onClick={() => setShowAllUpdates(false)} className="mt-2 w-full text-center text-[10px] font-semibold text-black/30">
                   Show less ↑
                 </button>
               )}
@@ -145,77 +142,87 @@ export default function MiniAppPage() {
           </>
         )}
 
-        {activeTab === 'events' && <EventsTab />}
+        {activeTab === 'events' && <EventsTab expandedEvent={expandedEvent} setExpandedEvent={setExpandedEvent} />}
         {activeTab === 'communities' && <CommunitiesTab />}
         {activeTab === 'leaderboard' && <LeaderboardTab />}
       </div>
 
-      {/* Bottom nav — fixed */}
+      {/* Bottom nav */}
       <nav className="grid grid-cols-3 gap-3 px-5 py-3 border-t border-black/5 shrink-0 bg-white">
-        <button
-          onClick={() => setActiveTab('communities')}
-          className={`rounded-xl p-3 text-center transition active:scale-95 ${activeTab === 'communities' ? 'ring-2 ring-arka-pink/30 bg-arka-pink/10' : 'bg-arka-pink/5'}`}
-        >
+        <button onClick={() => setActiveTab('communities')} className={`rounded-xl p-2.5 text-center transition active:scale-95 ${activeTab === 'communities' ? 'ring-2 ring-arka-pink/30 bg-arka-pink/10' : 'bg-arka-pink/5'}`}>
           <p className="text-xl font-black text-arka-pink">2</p>
-          <p className="text-[9px] text-black/40">Communities →</p>
+          <p className="text-[9px] text-black/40">Communities</p>
         </button>
-        <button
-          onClick={() => setActiveTab('events')}
-          className={`rounded-xl p-3 text-center transition active:scale-95 ${activeTab === 'events' ? 'ring-2 ring-[#00AEEF]/30 bg-[#00AEEF]/10' : 'bg-[#00AEEF]/5'}`}
-        >
+        <button onClick={() => { setActiveTab('events'); setExpandedEvent(null); }} className={`rounded-xl p-2.5 text-center transition active:scale-95 ${activeTab === 'events' ? 'ring-2 ring-[#00AEEF]/30 bg-[#00AEEF]/10' : 'bg-[#00AEEF]/5'}`}>
           <p className="text-xl font-black text-arka-cyan">5</p>
-          <p className="text-[9px] text-black/40">Events →</p>
+          <p className="text-[9px] text-black/40">Events</p>
         </button>
-        <button
-          onClick={() => setActiveTab('leaderboard')}
-          className={`rounded-xl p-3 text-center transition active:scale-95 ${activeTab === 'leaderboard' ? 'ring-2 ring-[#8DC63F]/30 bg-[#8DC63F]/10' : 'bg-[#8DC63F]/5'}`}
-        >
+        <button onClick={() => setActiveTab('leaderboard')} className={`rounded-xl p-2.5 text-center transition active:scale-95 ${activeTab === 'leaderboard' ? 'ring-2 ring-[#8DC63F]/30 bg-[#8DC63F]/10' : 'bg-[#8DC63F]/5'}`}>
           <p className="text-xl font-black text-arka-green">#3</p>
-          <p className="text-[9px] text-black/40">Rank →</p>
+          <p className="text-[9px] text-black/40">Rank</p>
         </button>
       </nav>
     </main>
   );
 }
 
-/* ── Tab Components ── */
-
-function EventsTab() {
-  const router = useRouter();
+/* ── Events Tab ── */
+function EventsTab({ expandedEvent, setExpandedEvent }: { expandedEvent: string | null; setExpandedEvent: (id: string | null) => void }) {
   const events = [
-    { name: 'ETH Budapest Meetup', date: 'Tomorrow, 18:00', attendees: 23, rep: '+100', upcoming: true },
-    { name: 'ETH Budapest Demo Day', date: 'Apr 16', attendees: 67, rep: '+100', upcoming: false },
-    { name: 'DeFi Deep Dive', date: 'Apr 10', attendees: 41, rep: '+90', upcoming: false },
-    { name: 'Arbitrum Builders Call', date: 'Mar 22', attendees: 56, rep: '+120', upcoming: false },
-    { name: 'ETH Budapest Kickoff', date: 'Mar 15', attendees: 34, rep: '+80', upcoming: false },
+    { id: 'eth-budapest-meetup', name: 'ETH Budapest Meetup', date: 'Tomorrow, 18:00', attendees: 23, rep: null, upcoming: true, location: 'Brody Studios, Budapest', desc: 'Monthly ETH Budapest community meetup. Network, learn, and build together.' },
+    { id: 'eth-budapest-demo', name: 'ETH Budapest Demo Day', date: 'Apr 16', attendees: 67, rep: '+100', upcoming: false, location: 'Akvarium Klub', desc: 'Demo your projects to the community.' },
+    { id: 'defi-deep-dive', name: 'DeFi Deep Dive', date: 'Apr 10', attendees: 41, rep: '+90', upcoming: false, location: 'Online', desc: 'Deep dive into DeFi protocols and strategies.' },
+    { id: 'arb-builders', name: 'Arbitrum Builders Call', date: 'Mar 22', attendees: 56, rep: '+120', upcoming: false, location: 'Online', desc: 'Weekly builders call for Arbitrum ecosystem.' },
+    { id: 'eth-kickoff', name: 'ETH Budapest Kickoff', date: 'Mar 15', attendees: 34, rep: '+80', upcoming: false, location: 'Brody Studios', desc: 'Season kickoff event.' },
   ];
+
   return (
-    <div className="space-y-3">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-black/30">Your Events</p>
+    <div className="space-y-2">
+      <p className="text-[9px] font-bold uppercase tracking-wider text-black/25 mb-1">Your Events</p>
       {events.map((e) => (
-        <button
-          key={e.name}
-          onClick={() => e.upcoming ? router.push('/miniapp/event/mock-eth-budapest') : null}
-          className="w-full rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-arka-text">{e.name}</p>
-              <p className="text-[10px] text-black/40">{e.date} · {e.attendees} attendees</p>
+        <div key={e.id}>
+          <button
+            onClick={() => setExpandedEvent(expandedEvent === e.id ? null : e.id)}
+            className={`w-full rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 transition ${expandedEvent === e.id ? 'ring-arka-cyan/30' : 'ring-black/5'}`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-arka-text">{e.name}</p>
+                <p className="text-[10px] text-black/40">{e.date} · {e.attendees} attendees</p>
+              </div>
+              {e.upcoming ? (
+                <span className="rounded-full bg-[#8DC63F]/15 px-2 py-0.5 text-[10px] font-bold text-arka-green">Upcoming</span>
+              ) : (
+                <span className="text-xs font-bold text-arka-green">{e.rep}</span>
+              )}
             </div>
-            {e.upcoming ? (
-              <span className="rounded-full bg-arka-green/15 px-2 py-0.5 text-[10px] font-bold text-arka-green">Upcoming</span>
-            ) : (
-              <span className="text-xs font-bold text-arka-green">{e.rep}</span>
-            )}
-          </div>
-        </button>
+          </button>
+          {expandedEvent === e.id && (
+            <div className="mx-2 mt-1 mb-1 rounded-xl bg-gray-50 p-3 ring-1 ring-black/5">
+              <p className="text-xs text-black/60">{e.desc}</p>
+              <div className="mt-2 flex items-center gap-3 text-[10px] text-black/40">
+                <span>📍 {e.location}</span>
+                <span>👥 {e.attendees}</span>
+              </div>
+              {e.upcoming && (
+                <div className="mt-3 flex gap-2">
+                  <button className="flex-1 rounded-lg bg-arka-pink py-2 text-xs font-bold text-white">Join Event</button>
+                  <button className="flex-1 rounded-lg bg-gray-100 py-2 text-xs font-semibold text-black/50">Share</button>
+                </div>
+              )}
+              {!e.upcoming && (
+                <p className="mt-2 text-[10px] text-arka-green font-semibold">✓ Attended · {e.rep} rep earned</p>
+              )}
+            </div>
+          )}
+        </div>
       ))}
-      <p className="text-center text-[10px] text-black/30">Total: <span className="font-bold text-arka-green">+490 rep</span> from 5 events</p>
+      <p className="text-center text-[10px] text-black/30 pt-1">Total: <span className="font-bold text-arka-green">+490 rep</span> from 5 events</p>
     </div>
   );
 }
 
+/* ── Communities Tab ── */
 function CommunitiesTab() {
   const communities = [
     { name: 'ETH Budapest', members: 48, events: 12, fee: '2 USDC/mo', role: 'Member' },
@@ -224,7 +231,7 @@ function CommunitiesTab() {
   ];
   return (
     <div className="space-y-3">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-black/30">Your Communities</p>
+      <p className="text-[9px] font-bold uppercase tracking-wider text-black/25">Your Communities</p>
       {communities.map((c) => (
         <div key={c.name} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
           <div className="flex items-center justify-between">
@@ -242,6 +249,7 @@ function CommunitiesTab() {
   );
 }
 
+/* ── Leaderboard Tab ── */
 function LeaderboardTab() {
   const leaderboard = [
     { rank: 1, name: 'alex.eth', rep: 3200, medal: '🥇' },
@@ -255,21 +263,12 @@ function LeaderboardTab() {
   ];
   return (
     <div className="space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-black/30">Global Leaderboard</p>
+      <p className="text-[9px] font-bold uppercase tracking-wider text-black/25">Global Leaderboard</p>
       {leaderboard.map((r) => (
-        <div
-          key={r.rank}
-          className={`flex items-center justify-between rounded-xl px-4 py-3 ${
-            r.highlight ? 'bg-arka-pink/10 ring-1 ring-arka-pink/20' : 'bg-gray-50'
-          }`}
-        >
+        <div key={r.rank} className={`flex items-center justify-between rounded-xl px-4 py-2.5 ${r.highlight ? 'bg-arka-pink/10 ring-1 ring-arka-pink/20' : 'bg-gray-50'}`}>
           <div className="flex items-center gap-3">
-            <span className={`text-base font-black ${r.rank === 1 ? 'text-yellow-500' : r.rank === 2 ? 'text-gray-400' : r.rank === 3 ? 'text-amber-600' : 'text-black/20'}`}>
-              #{r.rank}
-            </span>
-            <span className={`text-sm font-semibold ${r.highlight ? 'text-arka-pink' : 'text-arka-text'}`}>
-              {r.medal} {r.name}
-            </span>
+            <span className={`text-base font-black ${r.rank === 1 ? 'text-yellow-500' : r.rank === 2 ? 'text-gray-400' : r.rank === 3 ? 'text-amber-600' : 'text-black/20'}`}>#{r.rank}</span>
+            <span className={`text-sm font-semibold ${r.highlight ? 'text-arka-pink' : 'text-arka-text'}`}>{r.medal} {r.name}</span>
           </div>
           <span className={`text-sm font-bold ${r.highlight ? 'text-arka-pink' : 'text-arka-green'}`}>{r.rep}</span>
         </div>
