@@ -7,7 +7,14 @@
     "datetime": "2026-04-20T18:00:00.000Z",
     "location": "Central Budapest - TBD",
     "createdAt": "2026-04-19T06:41:33.612Z",
-    "attendees": {},
+    "attendees": {
+      "test123": {
+        "checkedIn": true,
+        "checkedInAt": "2026-04-19T06:45:01.710Z",
+        "verifications": [],
+        "mingles": []
+      }
+    },
     "mingleActive": false,
     "minglePairs": [],
     "ended": false
