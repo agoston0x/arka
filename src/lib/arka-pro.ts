@@ -15,60 +15,72 @@ const ARKA_PRO_ADDRESS = process.env.NEXT_PUBLIC_ARKA_PRO_CONTRACT || '0x549A60b
 const ARB_SEPOLIA_CHAIN_ID = 421614;
 const ARB_SEPOLIA_RPC = 'https://sepolia-rollup.arbitrum.io/rpc';
 
-// Use Dynamic embedded wallet to get a signer
 export async function getDynamicSigner(primaryWallet: any): Promise<ethers.Signer | null> {
   if (!primaryWallet) return null;
 
   try {
-    // Switch to Arbitrum Sepolia if needed
-    const currentChainId = await primaryWallet.getNetwork();
-    if (currentChainId !== ARB_SEPOLIA_CHAIN_ID) {
+    // Switch to Arbitrum Sepolia
+    try {
       await primaryWallet.switchNetwork(ARB_SEPOLIA_CHAIN_ID);
+    } catch (e) {
+      console.log('Network switch failed/unnecessary:', e);
     }
 
-    // Get the wallet client (ethers provider/signer)
-    const walletClient = await (primaryWallet as any).getWalletClient();
-    
-    // For Dynamic embedded wallets, we can get an ethers signer
-    if (walletClient?.account) {
-      // viem wallet client — wrap in ethers
-      const provider = new ethers.providers.JsonRpcProvider(ARB_SEPOLIA_RPC);
-      // Use the embedded wallet's private signing capability via window.ethereum
-      if (typeof window !== 'undefined' && window.ethereum) {
-        const ethersProvider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = ethersProvider.getSigner();
-        return signer;
+    // Method 1: Dynamic's getWalletClient → viem walletClient → ethers
+    const walletClient = await primaryWallet.getWalletClient();
+    if (walletClient) {
+      // walletClient is a viem client with account + transport
+      // Create a provider from the walletClient's transport
+      const { createWalletClient, http } = await import('viem');
+      const { arbitrumSepolia } = await import('viem/chains');
+      
+      // Use walletClient to sign, but we need ethers Signer
+      // The simplest: use the embedded wallet's connector
+      const connector = primaryWallet.connector;
+      if (connector) {
+        const ethereumProvider = await connector.getProvider();
+        if (ethereumProvider) {
+          const provider = new ethers.providers.Web3Provider(ethereumProvider);
+          
+          // Ensure correct chain
+          try {
+            await ethereumProvider.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: `0x${ARB_SEPOLIA_CHAIN_ID.toString(16)}` }],
+            });
+          } catch (e: any) {
+            if (e.code === 4902) {
+              await ethereumProvider.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: `0x${ARB_SEPOLIA_CHAIN_ID.toString(16)}`,
+                  chainName: 'Arbitrum Sepolia',
+                  nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                  rpcUrls: [ARB_SEPOLIA_RPC],
+                  blockExplorerUrls: ['https://sepolia.arbiscan.io/']
+                }]
+              });
+            }
+          }
+          
+          return provider.getSigner();
+        }
       }
     }
 
-    // Fallback: try direct ethers provider from window.ethereum
+    // Method 2: Try connector directly
+    if (primaryWallet.connector) {
+      const ethereumProvider = await primaryWallet.connector.getProvider();
+      if (ethereumProvider) {
+        const provider = new ethers.providers.Web3Provider(ethereumProvider);
+        return provider.getSigner();
+      }
+    }
+
+    // Method 3: window.ethereum fallback (browser only)
     if (typeof window !== 'undefined' && window.ethereum) {
       await window.ethereum.request({ method: 'eth_requestAccounts' });
       const provider = new ethers.providers.Web3Provider(window.ethereum);
-      
-      // Switch chain if needed
-      const network = await provider.getNetwork();
-      if (network.chainId !== ARB_SEPOLIA_CHAIN_ID) {
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${ARB_SEPOLIA_CHAIN_ID.toString(16)}` }],
-          });
-        } catch (switchError: any) {
-          if (switchError.code === 4902) {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: `0x${ARB_SEPOLIA_CHAIN_ID.toString(16)}`,
-                chainName: 'Arbitrum Sepolia',
-                nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-                rpcUrls: [ARB_SEPOLIA_RPC],
-                blockExplorerUrls: ['https://sepolia.arbiscan.io/']
-              }]
-            });
-          }
-        }
-      }
       return provider.getSigner();
     }
 
@@ -81,11 +93,7 @@ export async function getDynamicSigner(primaryWallet: any): Promise<ethers.Signe
 
 export async function subscribeWithDynamic(primaryWallet: any): Promise<{ success: boolean; txHash?: string; error?: string }> {
   const signer = await getDynamicSigner(primaryWallet);
-  if (!signer) return { success: false, error: 'Could not connect wallet' };
-
-  if (!ARKA_PRO_ADDRESS) {
-    return { success: false, error: 'Contract not deployed yet' };
-  }
+  if (!signer) return { success: false, error: 'Could not connect wallet. Please try again.' };
 
   try {
     const contract = new ethers.Contract(ARKA_PRO_ADDRESS, ARKA_PRO_ABI, signer);
@@ -103,10 +111,6 @@ export async function createCommunityOnChain(primaryWallet: any, name: string): 
   const signer = await getDynamicSigner(primaryWallet);
   if (!signer) return { success: false, error: 'Could not connect wallet' };
 
-  if (!ARKA_PRO_ADDRESS) {
-    return { success: false, error: 'Contract not deployed yet' };
-  }
-
   try {
     const contract = new ethers.Contract(ARKA_PRO_ADDRESS, ARKA_PRO_ABI, signer);
     const tx = await contract.createCommunity(name);
@@ -120,7 +124,6 @@ export async function createCommunityOnChain(primaryWallet: any, name: string): 
 
 export async function checkIsProHost(address: string): Promise<boolean> {
   if (!ARKA_PRO_ADDRESS) return false;
-
   try {
     const provider = new ethers.providers.JsonRpcProvider(ARB_SEPOLIA_RPC);
     const contract = new ethers.Contract(ARKA_PRO_ADDRESS, ARKA_PRO_ABI, provider);
@@ -133,7 +136,6 @@ export async function checkIsProHost(address: string): Promise<boolean> {
 
 export async function getSubscriptionExpiry(address: string): Promise<number> {
   if (!ARKA_PRO_ADDRESS) return 0;
-
   try {
     const provider = new ethers.providers.JsonRpcProvider(ARB_SEPOLIA_RPC);
     const contract = new ethers.Contract(ARKA_PRO_ADDRESS, ARKA_PRO_ABI, provider);

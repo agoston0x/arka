@@ -154,13 +154,13 @@ export default function ProfilePage() {
             <h3 className="text-base font-bold">🌟 Go Pro</h3>
             <p className="mt-1 text-xs opacity-90">Create your own community & host events</p>
             <p className="mt-1 text-[10px] opacity-70">0.001 ETH · one-time</p>
-            <a
-              href="https://arka.social"
-              target="_blank"
-              className="mt-3 block w-full rounded-full bg-white py-2.5 text-center text-sm font-bold text-arka-pink transition active:scale-95"
+            <button
+              onClick={handleUpgrade}
+              disabled={upgrading}
+              className="mt-3 w-full rounded-full bg-white py-2.5 text-sm font-bold text-arka-pink transition active:scale-95 disabled:opacity-50"
             >
-              Upgrade on arka.social →
-            </a>
+              {upgrading ? 'Processing...' : 'Upgrade Now'}
+            </button>
           </div>
         )}
 
