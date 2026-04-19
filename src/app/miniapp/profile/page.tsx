@@ -3,15 +3,17 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ArkaLogo from '@/components/ArkaLogo';
 import { useAuth } from '@/lib/auth-context';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isProHost, signOut, becomeHost } = useAuth();
+  const { user, isProHost, isConnected, openSignIn, signOut, becomeHost } = useAuth();
   const tgUser = typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user : null;
   const displayName = tgUser?.first_name || user?.username?.replace('@', '') || 'User';
   const [balance, setBalance] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     if (!user?.address || !user.address.startsWith('0x')) return;
@@ -51,6 +53,14 @@ export default function ProfilePage() {
     }
   };
 
+  const qrPayload = JSON.stringify({
+    type: 'arka',
+    action: 'mingle-scan',
+    userId: tgUser?.id?.toString() || user?.address || '',
+    username: displayName,
+    address: user?.address || '',
+  });
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-md bg-white">
       <header className="sticky top-0 z-40 flex items-center gap-3 bg-white/90 px-5 py-4 backdrop-blur-sm border-b border-black/5">
@@ -70,6 +80,20 @@ export default function ProfilePage() {
           {isProHost && <span className="mt-2 rounded-full bg-arka-pink px-3 py-0.5 text-[10px] font-bold text-white">PRO HOST ✦</span>}
         </div>
 
+        {/* Not signed in with Dynamic */}
+        {!isConnected && (
+          <div className="mt-6 rounded-2xl bg-gray-50 p-5 text-center ring-1 ring-black/5">
+            <p className="text-sm font-semibold text-arka-text">Connect your wallet</p>
+            <p className="mt-1 text-xs text-black/40">Sign in with email to get an embedded wallet</p>
+            <button
+              onClick={openSignIn}
+              className="mt-3 w-full rounded-xl bg-arka-pink py-3 text-sm font-bold text-white transition active:scale-95"
+            >
+              Sign In with Email
+            </button>
+          </div>
+        )}
+
         {/* Wallet */}
         {user?.address && (
           <div className="mt-6 rounded-2xl bg-gray-50 p-4 ring-1 ring-black/5">
@@ -79,7 +103,7 @@ export default function ProfilePage() {
             </div>
             <button onClick={copyAddress} className="flex items-center gap-2 w-full text-left">
               <code className="text-[11px] text-arka-text break-all font-mono">{user.address}</code>
-              <span className="text-[10px] text-arka-pink font-bold shrink-0">{copied ? '✓' : 'Copy'}</span>
+              <span className="text-[10px] text-arka-pink font-bold shrink-0">{copied ? '✓ Copied' : 'Copy'}</span>
             </button>
             {balance !== null && (
               <div className="mt-3 pt-3 border-t border-black/5">
@@ -89,6 +113,24 @@ export default function ProfilePage() {
             )}
           </div>
         )}
+
+        {/* QR Code */}
+        <div className="mt-5">
+          <button
+            onClick={() => setShowQR(!showQR)}
+            className="w-full rounded-2xl bg-white p-4 text-center shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
+          >
+            <p className="text-sm font-bold text-arka-text">{showQR ? 'Hide QR Code' : '📱 Show My QR Code'}</p>
+            <p className="text-[10px] text-black/40">For check-in & mingle at events</p>
+          </button>
+          {showQR && (
+            <div className="mt-3 flex flex-col items-center rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
+              <QRCodeSVG value={qrPayload} size={200} level="M" />
+              <p className="mt-3 text-xs font-semibold text-arka-text">{displayName}</p>
+              <p className="text-[10px] text-black/30">Scan to verify at events</p>
+            </div>
+          )}
+        </div>
 
         {/* Stats */}
         <div className="mt-5 grid grid-cols-3 gap-3">
@@ -107,7 +149,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Go Pro */}
-        {!isProHost && (
+        {!isProHost && isConnected && (
           <div className="mt-5 rounded-2xl bg-gradient-to-br from-arka-pink to-arka-cyan p-5 text-white shadow-lg">
             <h3 className="text-base font-bold">🌟 Go Pro</h3>
             <p className="mt-1 text-xs opacity-90">Create your own community & host events</p>

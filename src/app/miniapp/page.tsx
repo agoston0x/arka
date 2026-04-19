@@ -129,14 +129,20 @@ export default function MiniAppPage() {
 
       {/* Quick stats */}
       <section className="grid grid-cols-3 gap-3 px-5 pb-5">
-        <div className="rounded-xl bg-arka-pink/10 p-3 text-center">
+        <button
+          onClick={() => router.push('/miniapp/communities')}
+          className="rounded-xl bg-arka-pink/10 p-3 text-center transition active:scale-95"
+        >
           <p className="text-2xl font-black text-arka-pink">2</p>
-          <p className="text-[10px] text-black/40">Communities</p>
-        </div>
-        <div className="rounded-xl bg-arka-cyan/10 p-3 text-center">
+          <p className="text-[10px] text-black/40">Communities →</p>
+        </button>
+        <button
+          onClick={() => router.push('/miniapp/events')}
+          className="rounded-xl bg-arka-cyan/10 p-3 text-center transition active:scale-95"
+        >
           <p className="text-2xl font-black text-arka-cyan">5</p>
-          <p className="text-[10px] text-black/40">Events</p>
-        </div>
+          <p className="text-[10px] text-black/40">Events →</p>
+        </button>
         <button
           onClick={() => router.push('/miniapp/leaderboard')}
           className="rounded-xl bg-arka-green/10 p-3 text-center transition active:scale-95"
