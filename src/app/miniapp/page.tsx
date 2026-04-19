@@ -103,21 +103,14 @@ export default function MiniAppPage() {
     <main className="mx-auto min-h-screen w-full max-w-md bg-white">
       {/* Header */}
       <header className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-2">
-          <ArkaLogo size={28} />
-          <span className="text-base font-bold text-arka-text">arka</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {user && (
-            <span className="text-[10px] text-black/40">{user.username || user.email}</span>
-          )}
-          <button
-            onClick={() => router.push('/miniapp/profile')}
-            className="rounded-full bg-arka-pink px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-arka-pink/90"
-          >
-            Profile
-          </button>
-        </div>
+        <img src="/arka-logo.png" alt="arka" className="h-10" />
+        <button
+          onClick={() => router.push('/miniapp/profile')}
+          className="flex items-center gap-1.5 rounded-full bg-arka-pink/10 px-3 py-1.5 transition active:scale-95"
+        >
+          <span className="text-xs font-semibold text-arka-pink">{displayName}</span>
+          <svg className="h-3 w-3 text-arka-pink" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+        </button>
       </header>
 
       {/* Welcome */}
