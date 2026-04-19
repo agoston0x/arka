@@ -60,7 +60,7 @@ Tap the button below to view event details and RSVP.`,
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '📍 View Event', web_app: { url: `${WEBAPP_URL}/miniapp/event/${eventId}` } }],
+            [{ text: '📍 View Event', web_app: { url: `${WEBAPP_URL}/miniapp?join=${eventId}` } }],
           ],
         },
       }

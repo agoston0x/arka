@@ -43,7 +43,7 @@ export default function EventPage() {
   const [username, setUsername] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'event' | 'chat' | 'poll'>('event');
   const [hasAutoJoined, setHasAutoJoined] = useState(false);
-  const { user } = useAuth();
+  const { user, isConnected, openSignIn } = useAuth();
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -109,7 +109,20 @@ export default function EventPage() {
   }, [userId, eventId, hasAutoJoined, isTelegram]);
 
   if (isTelegram === null) return null;
-  if (isTelegram === false) return null;
+
+  // Auth gate — need to be signed in
+  if (!isConnected && !userId) {
+    return (
+      <main className="flex h-screen w-full flex-col items-center justify-center bg-white px-8 max-w-md mx-auto">
+        <img src="/arka-logo.png" alt="arka" className="h-16" />
+        <h2 className="mt-4 text-lg font-bold text-arka-text">Sign in to join event</h2>
+        <p className="mt-1 text-center text-sm text-black/40">Connect with email to participate</p>
+        <button onClick={openSignIn} className="mt-6 w-full max-w-xs rounded-xl bg-[#E5007D] py-3 text-sm font-bold text-white">
+          Sign In with Email
+        </button>
+      </main>
+    );
+  }
   if (loading) return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   if (!event || !state) return <div className="flex min-h-screen items-center justify-center">Event not found</div>;
 

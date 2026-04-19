@@ -449,6 +449,42 @@ app.post('/events/:id/join', (req, res) => {
   res.json({ success: true, state: event.attendees[userKey] });
 });
 
+// POST /events/:id/mingle/quick — Quick mingle scan (no mingle round needed)
+app.post('/events/:id/mingle/quick', (req, res) => {
+  const { userId, partnerId } = req.body;
+  const event = getEvent(req.params.id);
+
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  if (!userId || !partnerId) return res.status(400).json({ error: 'Missing userId or partnerId' });
+
+  // Auto-join both users if not already
+  for (const uid of [userId, partnerId]) {
+    if (!event.attendees[uid]) {
+      event.attendees[uid] = { checkedIn: true, checkedInAt: new Date().toISOString(), joined: true, verifications: [], mingles: [], rep: 0 };
+    }
+    if (!event.attendees[uid].rep) event.attendees[uid].rep = 0;
+  }
+
+  // Record mingle
+  if (!event.attendees[userId].mingles.includes(partnerId)) {
+    event.attendees[userId].mingles.push(partnerId);
+    event.attendees[userId].rep = (event.attendees[userId].rep || 0) + 50;
+  }
+  if (!event.attendees[partnerId].mingles.includes(userId)) {
+    event.attendees[partnerId].mingles.push(userId);
+    event.attendees[partnerId].rep = (event.attendees[partnerId].rep || 0) + 50;
+  }
+
+  saveEvents();
+  console.log(`🤝 Quick mingle: ${userId} ↔ ${partnerId} (+50 rep each)`);
+  res.json({
+    success: true,
+    userRep: event.attendees[userId].rep,
+    partnerRep: event.attendees[partnerId].rep,
+    attendeeCount: Object.keys(event.attendees).length,
+  });
+});
+
 // POST /events/:id/chat — Send chat message
 app.post('/events/:id/chat', (req, res) => {
   const { userId, username, text } = req.body;

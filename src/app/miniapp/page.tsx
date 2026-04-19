@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { QRCodeSVG } from 'qrcode.react';
 
 const API_URL = 'https://arka-api.claws.page';
 
@@ -14,7 +15,29 @@ export default function MiniAppPage() {
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [managedEvents, setManagedEvents] = useState<any[]>([]);
   const [openEventModal, setOpenEventModal] = useState<string | null>(null);
+  const [highlightCommunity, setHighlightCommunity] = useState<string | null>(null);
   const router = useRouter();
+
+  // Poll managed events for attendee updates
+  useEffect(() => {
+    if (managedEvents.length === 0) return;
+    const interval = setInterval(async () => {
+      const updated = await Promise.all(
+        managedEvents.map(async (e: any) => {
+          try {
+            const res = await fetch(`${API_URL}/events/${e.id}`);
+            if (res.ok) {
+              const data = await res.json();
+              return { ...e, attendees: data.attendees || e.attendees, chatMessages: data.chatMessages || e.chatMessages };
+            }
+          } catch {}
+          return e;
+        })
+      );
+      setManagedEvents(updated);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [managedEvents.length]);
   const { user, openSignIn, isProHost, isConnected } = useAuth();
 
   useEffect(() => {
@@ -24,6 +47,35 @@ export default function MiniAppPage() {
       tg.ready();
       tg.expand();
       tg.setHeaderColor('#ffffff');
+      // Handle deep link: startapp=event_EVENT_ID OR ?join=EVENT_ID
+      const urlParams = new URLSearchParams(window.location.search);
+      const joinParam = urlParams.get('join');
+      const startParam = joinParam ? `event_${joinParam}` : (tg.initDataUnsafe as any)?.start_param;
+      if (startParam && startParam.startsWith('event_')) {
+        const eventId = startParam.replace('event_', '');
+        // Auto-join the event
+        const tgId = tg.initDataUnsafe?.user?.id?.toString();
+        if (tgId) {
+          fetch(`${API_URL}/events/${eventId}/join`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: tgId }),
+          }).catch(() => {});
+        }
+        // Load the event and add to managed events
+        fetch(`${API_URL}/events/${eventId}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(eventData => {
+            if (eventData) {
+              setManagedEvents((prev: any[]) => {
+                if (prev.find((e: any) => e.id === eventId)) return prev;
+                return [eventData, ...prev];
+              });
+            }
+          }).catch(() => {});
+        setActiveTab('events');
+        setExpandedEvent(eventId);
+      }
     } else {
       setIsTelegram(false);
     }
@@ -55,7 +107,7 @@ export default function MiniAppPage() {
   const updates = [
     { emoji: '🎉', title: 'New Event: ETH Budapest Meetup', sub: 'Tomorrow, 18:00 · 23 attending', action: () => goToTab('events', 'eth-budapest-meetup') },
     { emoji: '📈', title: 'Your reputation rose +120 this week', sub: "You're now #3 in ETH Budapest", action: () => goToTab('leaderboard') },
-    { emoji: '👥', title: '3 new members joined Arbitrum Builders', sub: 'Community now has 127 members', action: () => goToTab('communities') },
+    { emoji: '👥', title: '3 new members joined Arbitrum Builders', sub: 'Community now has 127 members', action: () => { setHighlightCommunity('arb-builders'); setActiveTab('communities'); } },
     { emoji: '🏆', title: 'alex.eth overtook you on the leaderboard', sub: 'Attend more events to reclaim #2!', action: () => goToTab('leaderboard') },
     { emoji: '🎯', title: '+80 rep from DeFi Deep Dive check-in', sub: 'Total reputation: 2,450', action: () => goToTab('events', 'defi-deep-dive') },
     { emoji: '🔔', title: 'Reminder: RSVP to Web3 Nomads', sub: 'Next Wednesday, 19:00', action: () => goToTab('events') },
@@ -159,14 +211,14 @@ export default function MiniAppPage() {
             isProHost={isProHost}
           />
         )}
-        {activeTab === 'communities' && <CommunitiesTab />}
+        {activeTab === 'communities' && <CommunitiesTab highlightCommunity={highlightCommunity || undefined} />}
         {activeTab === 'leaderboard' && <LeaderboardTab />}
       </div>
 
       {/* Bottom nav */}
       <nav className="grid grid-cols-3 gap-3 px-5 py-3 border-t border-black/5 shrink-0 bg-white">
         <button onClick={() => setActiveTab('communities')} className={`rounded-xl p-2.5 text-center transition active:scale-95 ${activeTab === 'communities' ? 'ring-2 ring-arka-pink/30 bg-arka-pink/10' : 'bg-arka-pink/5'}`}>
-          <p className="text-2xl font-black text-arka-pink">2</p>
+          <p className="text-2xl font-black text-arka-pink">3</p>
           <p className="text-xs font-bold text-black/40">Communities</p>
         </button>
         <button onClick={() => { setActiveTab('events'); setExpandedEvent(null); }} className={`rounded-xl p-2.5 text-center transition active:scale-95 ${activeTab === 'events' ? 'ring-2 ring-[#00AEEF]/30 bg-[#00AEEF]/10' : 'bg-[#00AEEF]/5'}`}>
@@ -186,6 +238,11 @@ export default function MiniAppPage() {
 function EventsTab({ expandedEvent, setExpandedEvent, managedEvents, setManagedEvents, openEventModal, setOpenEventModal, showCreateEvent, setShowCreateEvent, userId, userAddress, isProHost }: any) {
   const [eventName, setEventName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [mingleQREvent, setMingleQREvent] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState<string | null>(null);
+
+  const tgUser = typeof window !== 'undefined' ? window.Telegram?.WebApp?.initDataUnsafe?.user : null;
+  const displayName = tgUser?.first_name || 'User';
 
   const pastEvents = [
     { id: 'eth-budapest-meetup', name: 'ETH Budapest Meetup', date: 'Tomorrow, 18:00', attendees: 23, rep: null, upcoming: true, location: 'Brody Studios, Budapest', desc: 'Monthly ETH Budapest community meetup.' },
@@ -244,8 +301,29 @@ function EventsTab({ expandedEvent, setExpandedEvent, managedEvents, setManagedE
                   <p className="text-xs text-black/50">{!isProHost ? '⚡ Ephemeral — data won\'t persist' : 'Persistent event'}</p>
                   <div className="mt-3 flex gap-2">
                     <button onClick={() => setOpenEventModal(e.id)} className="flex-1 rounded-lg bg-arka-pink py-2.5 text-xs font-bold text-white active:scale-95">💬 Chat & Poll</button>
-                    <button className="flex-1 rounded-lg bg-arka-cyan py-2.5 text-xs font-bold text-white active:scale-95">🤝 Mingle</button>
+                    <button onClick={() => setMingleQREvent(mingleQREvent === e.id ? null : e.id)} className="flex-1 rounded-lg bg-arka-cyan py-2.5 text-xs font-bold text-white active:scale-95">🤝 Mingle</button>
                   </div>
+                  {mingleQREvent === e.id && (
+                    <div className="mt-3 flex flex-col items-center rounded-xl bg-white p-4 ring-1 ring-black/5">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-black/25 mb-2">Your Mingle QR</p>
+                      <QRCodeSVG value={JSON.stringify({ type: 'arka', action: 'mingle-scan', eventId: e.id, userId, username: displayName, address: userAddress })} size={160} level="M" />
+                      <p className="mt-2 text-xs font-semibold text-arka-text">{displayName}</p>
+                      <p className="text-[10px] text-black/30">Other attendees scan this to mingle</p>
+                      <button onClick={() => { setMingleQREvent(null); setShowScanner(e.id); }} className="mt-3 w-full rounded-lg bg-arka-green py-2.5 text-xs font-bold text-white active:scale-95">📷 Scan someone\'s QR</button>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      const link = `https://t.me/arka_telegram_bot?startapp=event_${e.id}`;
+                      if (navigator.share) {
+                        navigator.share({ title: e.name, text: `Join ${e.name} on arka!`, url: link });
+                      } else {
+                        navigator.clipboard.writeText(link);
+                        alert('Link copied!');
+                      }
+                    }}
+                    className="mt-2 w-full rounded-lg bg-gray-100 py-2 text-xs font-semibold text-black/50 active:scale-95"
+                  >📤 Share invite link</button>
                 </div>
               )}
             </div>
@@ -285,7 +363,7 @@ function EventsTab({ expandedEvent, setExpandedEvent, managedEvents, setManagedE
                 <div className="mt-3 space-y-2">
                   <div className="flex gap-2">
                     <button className="flex-1 rounded-lg bg-arka-pink py-2.5 text-xs font-bold text-white active:scale-95">✓ Check In</button>
-                    <button className="flex-1 rounded-lg bg-arka-cyan py-2.5 text-xs font-bold text-white active:scale-95">🤝 Mingle</button>
+                    <button onClick={() => setMingleQREvent(mingleQREvent === e.id ? null : e.id)} className="flex-1 rounded-lg bg-arka-cyan py-2.5 text-xs font-bold text-white active:scale-95">🤝 Mingle</button>
                   </div>
                   <div className="flex gap-2">
                     <button className="flex-1 rounded-lg bg-gray-100 py-2 text-xs font-semibold text-black/50">💬 Chat</button>
@@ -315,8 +393,8 @@ function EventsTab({ expandedEvent, setExpandedEvent, managedEvents, setManagedE
 
       {/* Create event modal */}
       {showCreateEvent && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowCreateEvent(false)}>
-          <div className="w-full max-w-md rounded-t-2xl bg-white p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCreateEvent(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <div className="mx-5 w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-arka-text">Create Event</h3>
               <button onClick={() => setShowCreateEvent(false)} className="text-xl text-black/30">✕</button>
@@ -327,7 +405,7 @@ function EventsTab({ expandedEvent, setExpandedEvent, managedEvents, setManagedE
             <input
               type="text" value={eventName} onChange={e => setEventName(e.target.value)}
               placeholder="Event name" autoFocus
-              className="w-full rounded-xl border border-black/10 px-4 py-3 text-sm focus:border-arka-pink focus:outline-none"
+              className="w-full rounded-xl border border-black/10 px-4 py-3 text-base focus:border-arka-pink focus:outline-none"
             />
             <button
               onClick={handleCreate} disabled={creating || !eventName.trim()}
@@ -337,6 +415,19 @@ function EventsTab({ expandedEvent, setExpandedEvent, managedEvents, setManagedE
             </button>
           </div>
         </div>
+      )}
+
+      {/* Scanner modal */}
+      {showScanner && (
+        <ScannerModal
+          eventId={showScanner}
+          userId={userId}
+          onClose={() => setShowScanner(null)}
+          onSuccess={(data: any) => {
+            setShowScanner(null);
+            alert(`✅ Mingle match with ${data.partnerName || 'attendee'}! Both reputations bumped.`);
+          }}
+        />
       )}
 
       {/* Event modal (chat + poll) */}
@@ -464,26 +555,137 @@ function EventModal({ eventId, onClose, userId }: { eventId: string; onClose: ()
 }
 
 /* ── Communities Tab ── */
-function CommunitiesTab() {
+/* ── Scanner Modal ── */
+function ScannerModal({ eventId, userId, onClose, onSuccess }: { eventId: string; userId: string; onClose: () => void; onSuccess: (data: any) => void }) {
+  const videoRef = useState<HTMLVideoElement | null>(null);
+  const [scanning, setScanning] = useState(true);
+  const [result, setResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    const startCamera = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const video = document.getElementById('qr-scanner-video') as HTMLVideoElement;
+        if (video) {
+          video.srcObject = stream;
+          video.play();
+        }
+        // Scan using canvas
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const scan = () => {
+          if (!scanning || !video || video.readyState !== 4) { requestAnimationFrame(scan); return; }
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx?.drawImage(video, 0, 0);
+          // Use BarcodeDetector if available
+          if ('BarcodeDetector' in window) {
+            const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+            detector.detect(canvas).then((barcodes: any[]) => {
+              if (barcodes.length > 0) {
+                handleScan(barcodes[0].rawValue);
+              } else {
+                requestAnimationFrame(scan);
+              }
+            }).catch(() => requestAnimationFrame(scan));
+          } else {
+            requestAnimationFrame(scan);
+          }
+        };
+        requestAnimationFrame(scan);
+      } catch (e) {
+        console.error('Camera error:', e);
+      }
+    };
+    startCamera();
+    return () => { stream?.getTracks().forEach(t => t.stop()); };
+  }, [scanning]);
+
+  const handleScan = async (raw: string) => {
+    if (!scanning) return;
+    setScanning(false);
+    try {
+      const data = JSON.parse(raw);
+      if (data.type === 'arka' && data.action === 'mingle-scan') {
+        // Call API to record mingle
+        const res = await fetch(`${API_URL}/events/${data.eventId || eventId}/mingle/quick`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, partnerId: data.userId }),
+        });
+        const result = await res.json();
+        onSuccess({ partnerName: data.username, ...result });
+      } else {
+        setResult('Invalid QR code');
+        setTimeout(() => { setScanning(true); setResult(null); }, 2000);
+      }
+    } catch {
+      setResult('Could not read QR');
+      setTimeout(() => { setScanning(true); setResult(null); }, 2000);
+    }
+  };
+
+  // Manual input fallback
+  const [manualCode, setManualCode] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black max-w-md mx-auto">
+      <header className="flex items-center justify-between px-5 py-3 shrink-0">
+        <p className="text-sm font-bold text-white">Scan Mingle QR</p>
+        <button onClick={onClose} className="text-2xl text-white/50">✕</button>
+      </header>
+      <div className="flex-1 relative">
+        <video id="qr-scanner-video" className="w-full h-full object-cover" playsInline muted />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-48 w-48 rounded-2xl border-2 border-white/50" />
+        </div>
+        {result && (
+          <div className="absolute bottom-8 left-0 right-0 text-center">
+            <p className="text-sm font-bold text-white bg-red-500/80 mx-auto px-4 py-2 rounded-full inline-block">{result}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CommunitiesTab({ highlightCommunity }: { highlightCommunity?: string }) {
+  const [expanded, setExpanded] = useState<string | null>(highlightCommunity || null);
   const communities = [
-    { name: 'ETH Budapest', members: 48, events: 12, fee: '2 USDC/mo', role: 'Member' },
-    { name: 'Arbitrum Builders', members: 127, events: 34, fee: '5 USDC/mo', role: 'Member' },
-    { name: 'Web3 Nomads', members: 89, events: 8, fee: null, role: 'Member' },
+    { id: 'eth-budapest', name: 'ETH Budapest', members: 48, events: 12, fee: '2 USDC/mo', role: 'Member', desc: 'Budapest\'s premier Ethereum community. Monthly meetups, hackathons, and builder sessions.' },
+    { id: 'arb-builders', name: 'Arbitrum Builders', members: 127, events: 34, fee: '5 USDC/mo', role: 'Member', desc: 'For builders on Arbitrum. Weekly calls, code reviews, and ecosystem updates.' },
+    { id: 'web3-nomads', name: 'Web3 Nomads', members: 89, events: 8, fee: null, role: 'Member', desc: 'Digital nomads building in web3. Meetups across Europe, coworking sessions.' },
   ];
   return (
     <div className="space-y-3">
       <p className="text-[9px] font-bold uppercase tracking-wider text-black/25">Your Communities</p>
       {communities.map((c) => (
-        <div key={c.name} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-arka-text">{c.name}</h3>
-            {c.fee ? (
-              <span className="rounded-full bg-[#00AEEF]/10 px-2 py-0.5 text-[10px] font-semibold text-arka-cyan">{c.fee}</span>
-            ) : (
-              <span className="rounded-full bg-[#8DC63F]/10 px-2 py-0.5 text-[10px] font-semibold text-arka-green">Free</span>
-            )}
-          </div>
-          <p className="mt-1 text-[10px] text-black/40">{c.members} members · {c.events} events · {c.role}</p>
+        <div key={c.id}>
+          <button
+            onClick={() => setExpanded(expanded === c.id ? null : c.id)}
+            className={`w-full rounded-2xl bg-white p-4 text-left shadow-sm ring-1 transition ${expanded === c.id ? 'ring-arka-pink/30' : 'ring-black/5'}`}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-arka-text">{c.name}</h3>
+              {c.fee ? (
+                <span className="rounded-full bg-[#00AEEF]/10 px-2 py-0.5 text-[10px] font-semibold text-arka-cyan">{c.fee}</span>
+              ) : (
+                <span className="rounded-full bg-[#8DC63F]/10 px-2 py-0.5 text-[10px] font-semibold text-arka-green">Free</span>
+              )}
+            </div>
+            <p className="mt-1 text-[10px] text-black/40">{c.members} members · {c.events} events · {c.role}</p>
+          </button>
+          {expanded === c.id && (
+            <div className="mt-1 rounded-2xl bg-gray-50 p-4 ring-1 ring-black/5 relative">
+              <button onClick={() => setExpanded(null)} className="absolute top-3 right-3 text-lg text-black/30">✕</button>
+              <p className="text-xs text-black/60 pr-6">{c.desc}</p>
+              <div className="mt-3 flex gap-2">
+                <button className="flex-1 rounded-lg bg-arka-pink py-2 text-xs font-bold text-white active:scale-95">View Events</button>
+                <button className="flex-1 rounded-lg bg-gray-100 py-2 text-xs font-semibold text-black/50">Leaderboard</button>
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>

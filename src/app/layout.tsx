@@ -18,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
       </head>
