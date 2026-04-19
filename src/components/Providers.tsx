@@ -48,6 +48,16 @@ const cssOverrides = `
     background-color: #E5007D20 !important;
     color: #E5007D !important;
   }
+  /* Hide wallet options — email only */
+  .wallet-list,
+  .dynamic-widget-modal__wallet-list,
+  [data-testid="wallet-list"],
+  .dynamic-widget-modal .wallet-list-item,
+  .wallet-list__scroll-container,
+  .dynamic-footer,
+  .social-redirect-view__footer {
+    display: none !important;
+  }
 `;
 
 export function Providers({ children }: { children: React.ReactNode }) {

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useCallback, ReactNode, useState, useEffect } from 'react';
 import { useDynamicContext, useIsLoggedIn } from '@dynamic-labs/sdk-react-core';
-import { checkIsProHost, subscribeWithMetaMask } from './arka-pro';
+import { checkIsProHost, subscribeWithDynamic } from './arka-pro';
 
 type AuthContextType = {
   user: {
@@ -16,6 +16,7 @@ type AuthContextType = {
   } | null;
   isConnected: boolean;
   isProHost: boolean;
+  primaryWallet: any;
   openSignIn: () => void;
   signOut: () => void;
   becomeHost: () => Promise<void>;
@@ -61,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [handleLogOut]);
 
   const becomeHost = useCallback(async () => {
-    const result = await subscribeWithMetaMask();
+    const result = await subscribeWithDynamic(primaryWallet);
     if (result.success) {
       // Refresh pro status
       if (primaryWallet?.address) {
@@ -71,11 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       throw new Error(result.error || 'Subscription failed');
     }
-  }, [primaryWallet?.address]);
+  }, [primaryWallet]);
 
   const value = useMemo(
-    () => ({ user, isConnected: isLoggedIn, isProHost, openSignIn, signOut, becomeHost }),
-    [user, isLoggedIn, isProHost, openSignIn, signOut, becomeHost]
+    () => ({ user, isConnected: isLoggedIn, isProHost, primaryWallet, openSignIn, signOut, becomeHost }),
+    [user, isLoggedIn, isProHost, primaryWallet, openSignIn, signOut, becomeHost]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

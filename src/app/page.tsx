@@ -9,7 +9,7 @@ import { createCommunityOnChain } from '@/lib/arka-pro';
 
 export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { user, isConnected, openSignIn, signOut } = useAuth();
+  const { user, isConnected, openSignIn, signOut, primaryWallet } = useAuth();
   const [showTelegramPrompt, setShowTelegramPrompt] = useState<string | null>(null);
   const [expandedCommunity, setExpandedCommunity] = useState<string | null>(null);
 
@@ -234,7 +234,7 @@ function WebDashboard({
   expandedCommunity: string | null;
   onToggleCommunity: (id: string) => void;
 }) {
-  const { isProHost, becomeHost } = useAuth();
+  const { isProHost, becomeHost, primaryWallet } = useAuth();
   const [showProModal, setShowProModal] = useState(false);
   const [showCommunityForm, setShowCommunityForm] = useState(false);
   const [communityName, setCommunityName] = useState('');
@@ -262,7 +262,7 @@ function WebDashboard({
     }
     try {
       setIsCreating(true);
-      const result = await createCommunityOnChain(communityName);
+      const result = await createCommunityOnChain(primaryWallet, communityName);
       if (result.success) {
         await fetch('http://localhost:3053/communities', {
           method: 'POST',
@@ -302,7 +302,7 @@ function WebDashboard({
           <span className="text-base font-bold text-arka-text lg:hidden">arka</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-black/40">{user.username}</span>
+          <WalletBadge user={user} primaryWallet={primaryWallet} />
           <button
             onClick={signOut}
             className="rounded-full border border-black/10 px-3 py-1 text-xs font-medium text-black/50 transition hover:bg-black/5"
@@ -589,6 +589,69 @@ function WebDashboard({
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WalletBadge({ user, primaryWallet }: { user: any; primaryWallet: any }) {
+  const [showDetails, setShowDetails] = useState(false);
+  const [balance, setBalance] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!user?.address || !user.address.startsWith('0x')) return;
+    const fetchBalance = async () => {
+      try {
+        const resp = await fetch('https://sepolia-rollup.arbitrum.io/rpc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getBalance', params: [user.address, 'latest'], id: 1 }),
+        });
+        const data = await resp.json();
+        const wei = parseInt(data.result, 16);
+        setBalance((wei / 1e18).toFixed(4));
+      } catch { setBalance(null); }
+    };
+    fetchBalance();
+    const interval = setInterval(fetchBalance, 15000);
+    return () => clearInterval(interval);
+  }, [user?.address]);
+
+  const copyAddress = () => {
+    if (user?.address) {
+      navigator.clipboard.writeText(user.address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShowDetails(!showDetails)}
+        className="flex flex-col items-end"
+      >
+        <span className="text-xs font-medium text-black/50">{user.username}</span>
+        {balance !== null && (
+          <span className="text-[10px] font-semibold text-arka-cyan">{balance} ETH</span>
+        )}
+      </button>
+      {showDetails && user?.address && (
+        <div className="absolute right-0 top-full mt-2 z-50 w-64 rounded-xl bg-white p-3 shadow-lg ring-1 ring-black/10">
+          <p className="text-[10px] text-black/30 mb-1">Wallet Address</p>
+          <button onClick={copyAddress} className="flex items-center gap-2 w-full text-left">
+            <code className="text-xs text-arka-text break-all">{user.address}</code>
+            <span className="text-[10px] text-arka-pink font-semibold shrink-0">{copied ? '✓' : 'Copy'}</span>
+          </button>
+          {balance !== null && (
+            <div className="mt-2 pt-2 border-t border-black/5">
+              <p className="text-[10px] text-black/30">Balance (Arb Sepolia)</p>
+              <p className="text-sm font-bold text-arka-text">{balance} ETH</p>
+            </div>
+          )}
+          <p className="mt-2 text-[9px] text-black/20">Network: Arbitrum Sepolia</p>
         </div>
       )}
     </div>
