@@ -38,14 +38,37 @@ function getAllChatIds() {
   return Object.keys(loadUsers()).map(Number);
 }
 
-// /start command — welcome message with inline button
-bot.onText(/\/start/, (msg) => {
+// /start command — welcome message with inline button + deep link handling
+bot.onText(/\/start(.*)/, (msg, match) => {
   const chatId = msg.chat.id;
   const firstName = msg.from?.first_name || 'there';
-  console.log(`/start from ${firstName} (chatId: ${chatId})`);
+  const startParam = match[1]?.trim();
+  console.log(`/start from ${firstName} (chatId: ${chatId}, param: ${startParam || 'none'})`);
 
   addUser(chatId, firstName);
+  
+  // Handle deep link: /start event_EVENT_ID
+  if (startParam && startParam.startsWith('event_')) {
+    const eventId = startParam.replace('event_', '');
+    console.log(`🔗 Deep link to event: ${eventId}`);
+    
+    bot.sendMessage(chatId,
+      `🎉 You've been invited to an event!
 
+Tap the button below to view event details and RSVP.`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📍 View Event', web_app: { url: `${WEBAPP_URL}/miniapp/event/${eventId}` } }],
+          ],
+        },
+      }
+    );
+    return;
+  }
+
+  // Normal /start flow
   bot.sendMessage(chatId,
     `Hey ${firstName}! 👋\n\nWelcome to *arka* — real connections, real events.\n\nJoin communities, attend events, earn reputation. All on-chain.`,
     {
@@ -58,6 +81,29 @@ bot.onText(/\/start/, (msg) => {
       },
     }
   );
+
+  // Send update notifications after a short delay
+  setTimeout(() => {
+    bot.sendMessage(chatId, '🎉 *New Event: ETH Budapest Meetup*\nTomorrow, 18:00 · 23 attending\n\n_RSVP to earn reputation!_', {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📅 View Event', web_app: { url: `${WEBAPP_URL}/miniapp/event/mock-eth-budapest` } }],
+        ],
+      },
+    });
+  }, 1500);
+
+  setTimeout(() => {
+    bot.sendMessage(chatId, '📈 *Weekly Update*\nYour reputation rose *+120* this week!\nYou\'re now *#3* in ETH Budapest.', {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🏆 View Leaderboard', web_app: { url: `${WEBAPP_URL}/miniapp` } }],
+        ],
+      },
+    });
+  }, 3000);
 });
 
 // /help command

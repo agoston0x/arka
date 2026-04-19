@@ -105,22 +105,25 @@ function getEvent(id) {
 
 // POST /events — Create event
 app.post('/events', (req, res) => {
-  const { hostTgId, communityId, name, datetime, location } = req.body;
+  const { hostTgId, hostAddress, communityId, name, datetime, location, ephemeral } = req.body;
   
-  if (!hostTgId || !name || !datetime || !location) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  // Accept either hostTgId OR hostAddress
+  if ((!hostTgId && !hostAddress) || !name || !datetime || !location) {
+    return res.status(400).json({ error: 'Missing required fields (need hostTgId or hostAddress)' });
   }
 
   const id = generateId();
   events[id] = {
     id,
-    hostTgId,
+    hostTgId: hostTgId || null,
+    hostAddress: hostAddress || null,
     communityId: communityId || null,
     name,
     datetime,
     location,
+    ephemeral: ephemeral || false,
     createdAt: new Date().toISOString(),
-    attendees: {},  // userId -> { checkedIn: bool, verifications: [], mingles: [] }
+    attendees: {},  // userId/userAddress -> { checkedIn: bool, verifications: [], mingles: [] }
     mingleActive: false,
     minglePairs: [],
     ended: false,
@@ -142,27 +145,28 @@ app.get('/events/:id', (req, res) => {
 
 // POST /events/:id/checkin — User checks in
 app.post('/events/:id/checkin', (req, res) => {
-  const { userId } = req.body;
+  const { userId, userAddress } = req.body;
   const event = getEvent(req.params.id);
   
   if (!event) return res.status(404).json({ error: 'Event not found' });
-  if (!userId) return res.status(400).json({ error: 'Missing userId' });
+  const userKey = userId || userAddress;
+  if (!userKey) return res.status(400).json({ error: 'Missing userId or userAddress' });
 
-  if (!event.attendees[userId]) {
-    event.attendees[userId] = {
+  if (!event.attendees[userKey]) {
+    event.attendees[userKey] = {
       checkedIn: true,
       checkedInAt: new Date().toISOString(),
       verifications: [],
       mingles: [],
     };
   } else {
-    event.attendees[userId].checkedIn = true;
-    event.attendees[userId].checkedInAt = new Date().toISOString();
+    event.attendees[userKey].checkedIn = true;
+    event.attendees[userKey].checkedInAt = new Date().toISOString();
   }
 
   saveEvents();
-  console.log(`✅ Check-in: User ${userId} at event ${event.name}`);
-  res.json({ success: true, state: event.attendees[userId] });
+  console.log(`✅ Check-in: User ${userKey} at event ${event.name}`);
+  res.json({ success: true, state: event.attendees[userKey] });
 });
 
 // POST /events/:id/verify — User verifies with another attendee
@@ -287,6 +291,18 @@ app.post('/events/:id/end', async (req, res) => {
   event.ended = true;
   event.endedAt = new Date().toISOString();
   event.mingleActive = false;
+  
+  // If ephemeral, delete data instead of archiving
+  if (event.ephemeral) {
+    console.log(`⚡ Ephemeral event ${event.name} ended — data will be deleted`);
+    delete events[event.id];
+    saveEvents();
+    return res.json({
+      success: true,
+      ephemeral: true,
+      message: 'Ephemeral event data deleted',
+    });
+  }
 
   const attendeeCount = Object.keys(event.attendees).filter(uid => event.attendees[uid].checkedIn).length;
   const totalVerifications = Object.values(event.attendees).reduce((sum, a) => sum + a.verifications.length, 0);
@@ -378,12 +394,13 @@ app.post('/events/:id/end', async (req, res) => {
   });
 });
 
-// GET /events/:id/state/:userId — Get user's event state
+// GET /events/:id/state/:userId — Get user's event state (accepts userId or userAddress)
 app.get('/events/:id/state/:userId', (req, res) => {
   const event = getEvent(req.params.id);
   if (!event) return res.status(404).json({ error: 'Event not found' });
 
-  const state = event.attendees[req.params.userId] || {
+  const userKey = req.params.userId;
+  const state = event.attendees[userKey] || {
     checkedIn: false,
     verifications: [],
     mingles: [],
@@ -391,11 +408,38 @@ app.get('/events/:id/state/:userId', (req, res) => {
 
   res.json({
     ...state,
-    isHost: event.hostTgId === req.params.userId,
+    isHost: event.hostTgId === userKey || event.hostAddress === userKey,
     mingleActive: event.mingleActive,
     currentMingleNum: state.currentMingleNum || null,
     ended: event.ended,
   });
+});
+
+// POST /events/:id/join — Auto-join event (for deep link flow)
+app.post('/events/:id/join', (req, res) => {
+  const { userId, userAddress } = req.body;
+  const event = getEvent(req.params.id);
+  
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  const userKey = userId || userAddress;
+  if (!userKey) return res.status(400).json({ error: 'Missing userId or userAddress' });
+
+  if (!event.attendees[userKey]) {
+    event.attendees[userKey] = {
+      checkedIn: false,
+      joined: true,
+      joinedAt: new Date().toISOString(),
+      verifications: [],
+      mingles: [],
+    };
+  } else {
+    event.attendees[userKey].joined = true;
+    event.attendees[userKey].joinedAt = new Date().toISOString();
+  }
+
+  saveEvents();
+  console.log(`🎫 User ${userKey} joined event ${event.name}`);
+  res.json({ success: true, state: event.attendees[userKey] });
 });
 
 // POST /events/:id/chat — Send chat message

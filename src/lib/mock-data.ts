@@ -139,7 +139,7 @@ export const communities: Community[] = [
     members: 31,
     stake: '0.02 ETH',
     createdAt: '2023-04-19',
-    membershipFee: '1 USDC/mo',
+
     description: 'Digital nomads exploring web3 from Lisbon and beyond.',
   },
 ];

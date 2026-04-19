@@ -6,10 +6,18 @@ import ArkaLogo from '@/components/ArkaLogo';
 import { CommunityIcon, MeetupIcon, TrophyIcon, QrIcon } from '@/components/Icons';
 import { useAuth } from '@/lib/auth-context';
 
+const API_URL = 'https://arka-api.claws.page';
+
 export default function MiniAppPage() {
   const [isTelegram, setIsTelegram] = useState<boolean | null>(null);
   const router = useRouter();
-  const { user, openSignIn } = useAuth();
+  const { user, openSignIn, isProHost } = useAuth();
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [eventName, setEventName] = useState('');
+  const [eventDateTime, setEventDateTime] = useState('');
+  const [eventLocation, setEventLocation] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [createdEventId, setCreatedEventId] = useState<string | null>(null);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -30,6 +38,41 @@ export default function MiniAppPage() {
 
   const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
   const displayName = tgUser?.first_name || 'there';
+  
+  const handleCreateEvent = async () => {
+    if (!eventName.trim() || !eventDateTime || !eventLocation.trim()) {
+      alert('All fields are required');
+      return;
+    }
+    try {
+      setIsCreating(true);
+      const userId = tgUser?.id?.toString() || user?.address;
+      const res = await fetch(`${API_URL}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hostTgId: tgUser?.id?.toString(),
+          hostAddress: user?.address,
+          communityId: null,
+          name: eventName,
+          datetime: eventDateTime,
+          location: eventLocation,
+          ephemeral: !isProHost,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCreatedEventId(data.event.id);
+        router.push(`/miniapp/event/${data.event.id}`);
+      } else {
+        alert(data.error || 'Failed to create event');
+      }
+    } catch (error: any) {
+      alert(error.message || 'Failed to create event');
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-md bg-white">
@@ -166,6 +209,19 @@ export default function MiniAppPage() {
         </div>
       </section>
 
+      {/* Create Event Button */}
+      <section className="px-5 pb-4">
+        <button
+          onClick={() => setShowEventForm(true)}
+          className="w-full rounded-xl bg-gradient-to-r from-arka-pink to-arka-cyan p-4 text-left text-white shadow-lg transition active:scale-[0.98]"
+        >
+          <p className="text-sm font-bold">🎉 Create Event</p>
+          <p className="text-xs opacity-80">
+            {isProHost ? 'Host an event in your community' : 'Create a quick ephemeral event'}
+          </p>
+        </button>
+      </section>
+
       {/* Quick actions */}
       <section className="space-y-3 px-5 pb-10">
         <p className="mb-1 text-xs font-bold uppercase tracking-wider text-black/30">Quick Actions</p>
@@ -187,6 +243,68 @@ export default function MiniAppPage() {
           </button>
         ))}
       </section>
+
+      {/* Event creation modal */}
+      {showEventForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowEventForm(false)}>
+          <div className="mx-5 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-arka-text">
+              {isProHost ? '🎉 Create Event' : '⚡ Create Quick Event'}
+            </h3>
+            {!isProHost && (
+              <div className="mt-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">
+                ⚡ Quick events are ephemeral — data won&apos;t be saved after the event ends. Go Pro to keep your data!
+              </div>
+            )}
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-black/60">Event Name *</label>
+                <input
+                  type="text"
+                  value={eventName}
+                  onChange={(e) => setEventName(e.target.value)}
+                  placeholder="e.g. ETH Budapest Meetup"
+                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:border-arka-pink focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-black/60">Date & Time *</label>
+                <input
+                  type="datetime-local"
+                  value={eventDateTime}
+                  onChange={(e) => setEventDateTime(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:border-arka-pink focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-black/60">Location *</label>
+                <input
+                  type="text"
+                  value={eventLocation}
+                  onChange={(e) => setEventLocation(e.target.value)}
+                  placeholder="e.g. Budapest, Hungary"
+                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:border-arka-pink focus:outline-none"
+                />
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                onClick={handleCreateEvent}
+                disabled={isCreating || !eventName.trim() || !eventDateTime || !eventLocation.trim()}
+                className="rounded-xl bg-arka-pink py-3 text-sm font-bold text-white transition hover:bg-arka-pink/90 disabled:opacity-50"
+              >
+                {isCreating ? 'Creating...' : 'Create Event'}
+              </button>
+              <button
+                onClick={() => setShowEventForm(false)}
+                className="rounded-xl py-3 text-sm font-medium text-black/40 transition hover:bg-black/5"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
