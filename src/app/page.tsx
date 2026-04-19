@@ -5,11 +5,13 @@ import ArkaLogo from '@/components/ArkaLogo';
 import { useAuth } from '@/lib/auth-context';
 import { communities, meetups, memberships, currentUserId, formatDate } from '@/lib/mock-data';
 import { CommunityIcon, MeetupIcon, TrophyIcon, QrIcon } from '@/components/Icons';
+import { createCommunityOnChain } from '@/lib/arka-pro';
 
 export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { user, isConnected, openSignIn, signOut } = useAuth();
   const [showTelegramPrompt, setShowTelegramPrompt] = useState<string | null>(null);
+  const [expandedCommunity, setExpandedCommunity] = useState<string | null>(null);
 
   // If signed in, show dashboard
   if (isConnected && user) {
@@ -20,6 +22,8 @@ export default function LandingPage() {
         onEventClick={(name) => setShowTelegramPrompt(name)}
         telegramPrompt={showTelegramPrompt}
         onClosePrompt={() => setShowTelegramPrompt(null)}
+        expandedCommunity={expandedCommunity}
+        onToggleCommunity={(id) => setExpandedCommunity(expandedCommunity === id ? null : id)}
       />
     );
   }
@@ -219,13 +223,72 @@ function WebDashboard({
   onEventClick,
   telegramPrompt,
   onClosePrompt,
+  expandedCommunity,
+  onToggleCommunity,
 }: {
   user: NonNullable<ReturnType<typeof useAuth>['user']>;
   signOut: () => void;
   onEventClick: (name: string) => void;
   telegramPrompt: string | null;
   onClosePrompt: () => void;
+  expandedCommunity: string | null;
+  onToggleCommunity: (id: string) => void;
 }) {
+  const { isProHost, becomeHost } = useAuth();
+  const [showProModal, setShowProModal] = useState(false);
+  const [showCommunityForm, setShowCommunityForm] = useState(false);
+  const [communityName, setCommunityName] = useState('');
+  const [communityDescription, setCommunityDescription] = useState('');
+  const [communityLocation, setCommunityLocation] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleSubscribe = async () => {
+    try {
+      setIsCreating(true);
+      await becomeHost();
+      setShowProModal(false);
+      setShowCommunityForm(true);
+    } catch (error: any) {
+      alert(error.message || 'Subscription failed');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleCreateCommunity = async () => {
+    if (!communityName.trim()) {
+      alert('Community name is required');
+      return;
+    }
+    try {
+      setIsCreating(true);
+      const result = await createCommunityOnChain(communityName);
+      if (result.success) {
+        await fetch('http://localhost:3053/communities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: communityName,
+            description: communityDescription,
+            location: communityLocation,
+            creatorAddress: user.address,
+          }),
+        });
+        setShowCommunityForm(false);
+        setCommunityName('');
+        setCommunityDescription('');
+        setCommunityLocation('');
+        alert('Community created successfully!');
+      } else {
+        alert(result.error || 'Failed to create community');
+      }
+    } catch (error: any) {
+      alert(error.message || 'Failed to create community');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const joinedCommunities = communities.filter((c) =>
     memberships.some((m) => m.userId === currentUserId && m.communityId === c.id)
   );
@@ -255,7 +318,7 @@ function WebDashboard({
           Welcome back, {user.username.replace('@', '')} 👋
         </h1>
         <p className="mt-1 text-sm text-black/40">
-          {user.address ? `${user.address.slice(0, 6)}...${user.address.slice(-4)}` : ''}
+          {user.address && user.address !== '0x0000...0000' ? `${user.address.slice(0, 6)}...${user.address.slice(-4)}` : user.email}
         </p>
 
         {/* Stats */}
@@ -274,23 +337,96 @@ function WebDashboard({
           </div>
         </div>
 
+        {/* Go Pro Card */}
+        {!isProHost && (
+          <section className="mt-6 rounded-2xl bg-gradient-to-br from-arka-pink to-arka-cyan p-6 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">🌟 Go Pro</h3>
+                <p className="mt-1 text-sm opacity-90">Create your own community & host events</p>
+                <p className="mt-2 text-xs opacity-75">0.001 ETH/month</p>
+              </div>
+              <button
+                onClick={() => setShowProModal(true)}
+                className="rounded-full bg-white px-5 py-2 text-sm font-bold text-arka-pink transition hover:bg-white/90"
+              >
+                Upgrade
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* Pro Host: Create Community */}
+        {isProHost && !user.hostedCommunityId && (
+          <section className="mt-6 rounded-2xl bg-gradient-to-br from-arka-green to-arka-cyan p-6 text-white shadow-lg">
+            <h3 className="text-lg font-bold">✨ You&apos;re a Pro Host!</h3>
+            <p className="mt-1 text-sm opacity-90">Ready to create your community?</p>
+            <button
+              onClick={() => setShowCommunityForm(true)}
+              className="mt-3 rounded-full bg-white px-5 py-2 text-sm font-bold text-arka-green transition hover:bg-white/90"
+            >
+              Create Community
+            </button>
+          </section>
+        )}
+
         {/* Communities */}
         <section className="mt-8">
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-black/30">Your Communities</h2>
           <div className="space-y-3">
-            {(joinedCommunities.length > 0 ? joinedCommunities : communities.slice(0, 3)).map((c) => (
-              <div key={c.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-black/5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-arka-text">{c.name}</p>
-                    <p className="text-xs text-black/40">{c.members} members</p>
-                  </div>
-                  <span className="rounded-full bg-arka-cyan/10 px-2 py-0.5 text-xs font-semibold text-arka-cyan">
-                    Joined
-                  </span>
+            {(joinedCommunities.length > 0 ? joinedCommunities : communities.slice(0, 3)).map((c) => {
+              const isExpanded = expandedCommunity === c.id;
+              const communityMeetups = meetups.filter((m) => m.communityId === c.id);
+              return (
+                <div key={c.id} className="rounded-2xl bg-white shadow-sm ring-1 ring-black/5 transition-all">
+                  <button
+                    onClick={() => onToggleCommunity(c.id)}
+                    className="flex w-full items-center justify-between p-4 text-left"
+                  >
+                    <div>
+                      <p className="text-sm font-bold text-arka-text">{c.name}</p>
+                      <p className="text-xs text-black/40">{c.location} · {c.members} members</p>
+                    </div>
+                    <svg className={`h-4 w-4 text-black/20 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {isExpanded && (
+                    <div className="border-t border-black/5 px-4 pb-4 pt-3">
+                      {c.description && (
+                        <p className="mb-3 text-xs text-black/50">{c.description}</p>
+                      )}
+                      <div className="mb-3 flex gap-3 text-xs">
+                        <span className="text-black/40">Stake: <span className="font-semibold text-arka-text">{c.stake}</span></span>
+                        {c.membershipFee && (
+                          <span className="text-black/40">Fee: <span className="font-semibold text-arka-text">{c.membershipFee}</span></span>
+                        )}
+                      </div>
+                      {communityMeetups.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-black/25">Events</p>
+                          {communityMeetups.map((m) => (
+                            <button
+                              key={m.id}
+                              onClick={() => onEventClick(m.name)}
+                              className="flex w-full items-center justify-between rounded-xl bg-gray-50 p-3 text-left transition hover:bg-gray-100"
+                            >
+                              <div>
+                                <p className="text-xs font-semibold text-arka-text">{m.name}</p>
+                                <p className="text-[10px] text-black/40">{formatDate(m.datetime)} · {m.attendeeIds.length} attending</p>
+                              </div>
+                              <svg className="h-3 w-3 text-black/20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-black/30">No upcoming events</p>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -356,6 +492,97 @@ function WebDashboard({
               </a>
               <button
                 onClick={onClosePrompt}
+                className="rounded-xl py-3 text-sm font-medium text-black/40 transition hover:bg-black/5"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pro subscription modal */}
+      {showProModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowProModal(false)}>
+          <div className="mx-5 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-arka-text">🌟 Upgrade to Pro</h3>
+            <p className="mt-2 text-sm text-black/50">
+              Become a community host and create your own events!
+            </p>
+            <div className="mt-4 rounded-xl bg-gray-50 p-4">
+              <p className="text-xs text-black/40">Subscription Price</p>
+              <p className="mt-1 text-2xl font-bold text-arka-pink">0.001 ETH</p>
+              <p className="text-xs text-black/40">Valid for 30 days</p>
+            </div>
+            <p className="mt-3 text-xs text-black/40">
+              You&apos;ll be prompted to connect MetaMask and switch to Arbitrum Sepolia.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                onClick={handleSubscribe}
+                disabled={isCreating}
+                className="rounded-xl bg-arka-pink py-3 text-sm font-bold text-white transition hover:bg-arka-pink/90 disabled:opacity-50"
+              >
+                {isCreating ? 'Processing...' : 'Subscribe with MetaMask'}
+              </button>
+              <button
+                onClick={() => setShowProModal(false)}
+                className="rounded-xl py-3 text-sm font-medium text-black/40 transition hover:bg-black/5"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create community form */}
+      {showCommunityForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowCommunityForm(false)}>
+          <div className="mx-5 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-arka-text">✨ Create Your Community</h3>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-black/60">Community Name *</label>
+                <input
+                  type="text"
+                  value={communityName}
+                  onChange={(e) => setCommunityName(e.target.value)}
+                  placeholder="e.g. SF Web3 Builders"
+                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:border-arka-pink focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-black/60">Description</label>
+                <textarea
+                  value={communityDescription}
+                  onChange={(e) => setCommunityDescription(e.target.value)}
+                  placeholder="What's your community about?"
+                  rows={3}
+                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:border-arka-pink focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-black/60">Location</label>
+                <input
+                  type="text"
+                  value={communityLocation}
+                  onChange={(e) => setCommunityLocation(e.target.value)}
+                  placeholder="e.g. San Francisco, CA"
+                  className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm focus:border-arka-pink focus:outline-none"
+                />
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                onClick={handleCreateCommunity}
+                disabled={isCreating || !communityName.trim()}
+                className="rounded-xl bg-arka-green py-3 text-sm font-bold text-white transition hover:bg-arka-green/90 disabled:opacity-50"
+              >
+                {isCreating ? 'Creating...' : 'Create Community'}
+              </button>
+              <button
+                onClick={() => setShowCommunityForm(false)}
                 className="rounded-xl py-3 text-sm font-medium text-black/40 transition hover:bg-black/5"
               >
                 Cancel

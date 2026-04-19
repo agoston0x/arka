@@ -1,7 +1,7 @@
 'use client';
 
 import { DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
-// import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
+import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
 import { AuthProvider } from '@/lib/auth-context';
 
 const cssOverrides = `
@@ -55,7 +55,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <DynamicContextProvider
       settings={{
         environmentId: '76dc2f04-191e-4a8c-8ff9-22b6799cc796',
-        walletConnectors: [],
+        walletConnectors: [EthereumWalletConnectors],
         cssOverrides,
       }}
     >

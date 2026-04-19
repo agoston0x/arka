@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ArkaLogo from '@/components/ArkaLogo';
+import EventChat from '@/components/EventChat';
+import EventPoll from '@/components/EventPoll';
 
 const API_URL = 'https://arka-api.claws.page';
 
@@ -37,6 +39,8 @@ export default function EventPage() {
   const [state, setState] = useState<EventState | null>(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string>('');
+  const [username, setUsername] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'event' | 'chat' | 'poll'>('event');
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -45,6 +49,7 @@ export default function EventPage() {
       tg.ready();
       tg.expand();
       setUserId(tg.initDataUnsafe.user.id.toString());
+      setUsername(tg.initDataUnsafe.user.first_name || 'User');
     } else {
       setIsTelegram(false);
       router.replace('/');
@@ -171,22 +176,62 @@ export default function EventPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-md bg-white px-5 py-6">
-      <header className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ArkaLogo size={24} />
-          <span className="text-sm font-bold text-arka-text">arka</span>
+    <main className="mx-auto min-h-screen w-full max-w-md bg-white">
+      <header className="sticky top-0 z-10 bg-white px-5 py-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ArkaLogo size={24} />
+            <span className="text-sm font-bold text-arka-text">arka</span>
+          </div>
+          <button
+            onClick={() => router.push('/miniapp')}
+            className="text-xs text-black/40"
+          >
+            Home
+          </button>
         </div>
-        <button
-          onClick={() => router.push('/miniapp')}
-          className="text-xs text-black/40"
-        >
-          Home
-        </button>
+        
+        {/* Tabs */}
+        <div className="flex gap-1 rounded-lg bg-gray-100 p-1">
+          <button
+            onClick={() => setActiveTab('event')}
+            className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition ${
+              activeTab === 'event' ? 'bg-white text-arka-text shadow-sm' : 'text-black/40'
+            }`}
+          >
+            Event
+          </button>
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition ${
+              activeTab === 'chat' ? 'bg-white text-arka-text shadow-sm' : 'text-black/40'
+            }`}
+          >
+            Chat
+          </button>
+          <button
+            onClick={() => setActiveTab('poll')}
+            className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition ${
+              activeTab === 'poll' ? 'bg-white text-arka-text shadow-sm' : 'text-black/40'
+            }`}
+          >
+            Poll
+          </button>
+        </div>
       </header>
 
-      {/* Event info */}
-      <div className="mb-6">
+      {activeTab === 'chat' && (
+        <EventChat eventId={eventId} userId={userId} username={username} />
+      )}
+
+      {activeTab === 'poll' && (
+        <EventPoll eventId={eventId} userId={userId} isHost={state.isHost} />
+      )}
+
+      {activeTab === 'event' && (
+        <div className="px-5 py-6">
+          {/* Event info */}
+          <div className="mb-6">
         <h1 className="mb-1 text-2xl font-bold text-arka-text">{event.name}</h1>
         <p className="text-sm text-black/50">{event.location}</p>
         <p className="text-sm text-black/50">{new Date(event.datetime).toLocaleString()}</p>
@@ -283,6 +328,8 @@ export default function EventPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
         </div>
       )}
     </main>

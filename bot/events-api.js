@@ -4,14 +4,76 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const WebSocket = require('ws');
+const http = require('http');
+const url = require('url');
+const crypto = require('crypto');
 const { notifyMingleStart } = require('./index');
 
 const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ noServer: true });
+
 const PORT = 3053;
 const EVENTS_FILE = path.join(__dirname, 'events.json');
 
 app.use(express.json());
 app.use(cors());
+
+// WebSocket connection management
+const eventConnections = new Map(); // eventId -> Set of WebSocket clients
+
+wss.on('connection', (ws, req, eventId) => {
+  if (!eventConnections.has(eventId)) {
+    eventConnections.set(eventId, new Set());
+  }
+  eventConnections.get(eventId).add(ws);
+  
+  console.log(`📡 WebSocket connected to event ${eventId}`);
+  
+  ws.on('close', () => {
+    const clients = eventConnections.get(eventId);
+    if (clients) {
+      clients.delete(ws);
+      if (clients.size === 0) {
+        eventConnections.delete(eventId);
+      }
+    }
+    console.log(`📡 WebSocket disconnected from event ${eventId}`);
+  });
+  
+  ws.on('error', (err) => {
+    console.error('WebSocket error:', err);
+  });
+});
+
+// Broadcast to all clients connected to an event
+function broadcastToEvent(eventId, message) {
+  const clients = eventConnections.get(eventId);
+  if (!clients) return;
+  
+  const data = JSON.stringify(message);
+  clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(data);
+    }
+  });
+}
+
+// Handle WebSocket upgrade
+server.on('upgrade', (request, socket, head) => {
+  const pathname = url.parse(request.url).pathname;
+  const match = pathname.match(/^\/ws\/event\/([^\/]+)\/chat$/);
+  
+  if (match) {
+    const eventId = match[1];
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request, eventId);
+    });
+  } else {
+    socket.destroy();
+  }
+});
 
 // --- Data storage ---
 let events = {};
@@ -62,6 +124,8 @@ app.post('/events', (req, res) => {
     mingleActive: false,
     minglePairs: [],
     ended: false,
+    chatMessages: [],
+    poll: null,
   };
 
   saveEvents();
@@ -216,7 +280,7 @@ app.post('/events/:id/mingle/scan', (req, res) => {
 });
 
 // POST /events/:id/end — Host ends event
-app.post('/events/:id/end', (req, res) => {
+app.post('/events/:id/end', async (req, res) => {
   const event = getEvent(req.params.id);
   if (!event) return res.status(404).json({ error: 'Event not found' });
 
@@ -228,6 +292,78 @@ app.post('/events/:id/end', (req, res) => {
   const totalVerifications = Object.values(event.attendees).reduce((sum, a) => sum + a.verifications.length, 0);
   const totalMingles = Object.values(event.attendees).reduce((sum, a) => sum + a.mingles.length, 0);
 
+  // Archive to Arweave
+  let arweaveTxId = null;
+  let encryptionKey = null;
+  
+  try {
+    const archiveData = {
+      event: {
+        id: event.id,
+        name: event.name,
+        datetime: event.datetime,
+        location: event.location,
+        createdAt: event.createdAt,
+        endedAt: event.endedAt,
+      },
+      attendees: event.attendees,
+      chatMessages: event.chatMessages || [],
+      poll: event.poll,
+      minglePairs: event.minglePairs,
+      summary: {
+        attendees: attendeeCount,
+        verifications: totalVerifications,
+        mingles: totalMingles,
+      },
+    };
+
+    // Generate encryption key
+    encryptionKey = crypto.randomBytes(32).toString('hex');
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(encryptionKey, 'hex'), iv);
+    
+    let encrypted = cipher.update(JSON.stringify(archiveData), 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    
+    const encryptedBlob = JSON.stringify({
+      iv: iv.toString('hex'),
+      data: encrypted,
+    });
+
+    // Try Irys upload (devnet)
+    try {
+      const Irys = require('@irys/sdk').default;
+      const irys = new Irys({
+        url: 'https://devnet.irys.xyz',
+        token: 'ethereum',
+        key: process.env.IRYS_PRIVATE_KEY || crypto.randomBytes(32).toString('hex'),
+      });
+      
+      const receipt = await irys.upload(encryptedBlob, {
+        tags: [
+          { name: 'Content-Type', value: 'application/json' },
+          { name: 'App-Name', value: 'Arka' },
+          { name: 'Event-Id', value: event.id },
+        ],
+      });
+      
+      arweaveTxId = receipt.id;
+      console.log(`📦 Uploaded to Arweave: ${arweaveTxId}`);
+    } catch (irysError) {
+      console.error('Irys upload failed, using mock:', irysError.message);
+      // Fallback: save locally and use mock TX ID
+      const archivePath = path.join(__dirname, `archive-${event.id}.json`);
+      fs.writeFileSync(archivePath, encryptedBlob);
+      arweaveTxId = `MOCK_${crypto.randomBytes(16).toString('hex')}`;
+      console.log(`📦 Archived locally: ${archivePath} (mock TX: ${arweaveTxId})`);
+    }
+  } catch (error) {
+    console.error('Archive failed:', error);
+  }
+
+  event.arweaveTxId = arweaveTxId;
+  event.encryptionKey = encryptionKey;
+
   saveEvents();
   console.log(`🏁 Event ended: ${event.name}`);
   res.json({
@@ -237,6 +373,8 @@ app.post('/events/:id/end', (req, res) => {
       verifications: totalVerifications,
       mingles: totalMingles,
     },
+    arweaveTxId,
+    encryptionKey,
   });
 });
 
@@ -260,7 +398,118 @@ app.get('/events/:id/state/:userId', (req, res) => {
   });
 });
 
+// POST /events/:id/chat — Send chat message
+app.post('/events/:id/chat', (req, res) => {
+  const { userId, username, text } = req.body;
+  const event = getEvent(req.params.id);
+  
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  if (!userId || !text) return res.status(400).json({ error: 'Missing userId or text' });
+
+  const message = {
+    type: 'chat',
+    userId,
+    username: username || 'Anonymous',
+    text,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (!event.chatMessages) event.chatMessages = [];
+  event.chatMessages.push(message);
+  saveEvents();
+
+  // Broadcast to all connected clients
+  broadcastToEvent(event.id, message);
+  
+  console.log(`💬 Chat message in ${event.name}: ${username}: ${text}`);
+  res.json({ success: true, message });
+});
+
+// GET /events/:id/chat — Get chat history
+app.get('/events/:id/chat', (req, res) => {
+  const event = getEvent(req.params.id);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  res.json({ messages: event.chatMessages || [] });
+});
+
+// POST /events/:id/poll — Create poll
+app.post('/events/:id/poll', (req, res) => {
+  const { question, options } = req.body;
+  const event = getEvent(req.params.id);
+  
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  if (!question || !options || !Array.isArray(options) || options.length < 2) {
+    return res.status(400).json({ error: 'Invalid poll data' });
+  }
+
+  event.poll = {
+    question,
+    options: options.map((opt, i) => ({ id: i, text: opt, votes: [] })),
+    createdAt: new Date().toISOString(),
+  };
+  saveEvents();
+
+  // Broadcast to all connected clients
+  broadcastToEvent(event.id, { type: 'poll_created', poll: event.poll });
+  
+  // Notify checked-in attendees via Telegram
+  const checkedInUsers = Object.keys(event.attendees).filter(
+    uid => event.attendees[uid].checkedIn
+  );
+  
+  console.log(`📊 Poll created in ${event.name}: ${question}`);
+  res.json({ success: true, poll: event.poll });
+});
+
+// POST /events/:id/poll/vote — Vote in poll
+app.post('/events/:id/poll/vote', (req, res) => {
+  const { userId, optionIndex } = req.body;
+  const event = getEvent(req.params.id);
+  
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  if (!event.poll) return res.status(404).json({ error: 'No active poll' });
+  if (userId === undefined || optionIndex === undefined) {
+    return res.status(400).json({ error: 'Missing userId or optionIndex' });
+  }
+
+  const option = event.poll.options[optionIndex];
+  if (!option) return res.status(400).json({ error: 'Invalid option index' });
+
+  // Remove any existing vote from this user
+  event.poll.options.forEach(opt => {
+    opt.votes = opt.votes.filter(v => v !== userId);
+  });
+
+  // Add new vote
+  option.votes.push(userId);
+  saveEvents();
+
+  // Broadcast updated results
+  broadcastToEvent(event.id, { type: 'poll_updated', poll: event.poll });
+  
+  console.log(`📊 Poll vote in ${event.name}: User ${userId} voted for option ${optionIndex}`);
+  res.json({ success: true, poll: event.poll });
+});
+
+// GET /events/:id/poll — Get poll results
+app.get('/events/:id/poll', (req, res) => {
+  const event = getEvent(req.params.id);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  if (!event.poll) return res.status(404).json({ error: 'No active poll' });
+  res.json({ poll: event.poll });
+});
+
+// POST /communities — Create community
+app.post('/communities', (req, res) => {
+  const { name, description, location, creatorAddress } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name required' });
+  
+  console.log(`🏘️ Community created: ${name} by ${creatorAddress}`);
+  res.json({ success: true, community: { name, description, location, creatorAddress } });
+});
+
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Events API running on port ${PORT}`);
+  console.log(`📡 WebSocket server ready at ws://localhost:${PORT}/ws/event/:eventId/chat`);
 });

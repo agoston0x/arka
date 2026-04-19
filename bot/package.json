@@ -6,9 +6,12 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "@irys/sdk": "^0.2.11",
     "cors": "^2.8.6",
+    "crypto": "^1.0.1",
     "dotenv": "^16.4.5",
     "express": "^5.2.1",
-    "node-telegram-bot-api": "^0.66.0"
+    "node-telegram-bot-api": "^0.66.0",
+    "ws": "^8.20.0"
   }
 }

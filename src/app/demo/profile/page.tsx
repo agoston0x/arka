@@ -217,10 +217,14 @@ function HostModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () 
     }, 1500);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim() || !desc.trim() || !staked) return;
-    becomeHost(name, desc);
-    onSuccess();
+    try {
+      await becomeHost();
+      onSuccess();
+    } catch (err) {
+      console.error('Failed to become host:', err);
+    }
   };
 
   return (
