@@ -150,17 +150,17 @@ export default function ProfilePage() {
 
         {/* Go Pro */}
         {!isProHost && isConnected && (
-          <div className="mt-5 rounded-2xl bg-gradient-to-br from-arka-pink to-arka-cyan p-5 text-white shadow-lg">
+          <div className="mt-5 rounded-2xl bg-gradient-to-br from-arka-pink to-[#7B61FF] p-5 text-white shadow-lg">
             <h3 className="text-base font-bold">🌟 Go Pro</h3>
             <p className="mt-1 text-xs opacity-90">Create your own community & host events</p>
-            <p className="mt-1 text-[10px] opacity-75">0.001 ETH · one-time</p>
-            <button
-              onClick={handleUpgrade}
-              disabled={upgrading}
-              className="mt-3 w-full rounded-full bg-white py-2.5 text-sm font-bold text-arka-pink transition active:scale-95 disabled:opacity-50"
+            <p className="mt-1 text-[10px] opacity-70">0.001 ETH · one-time</p>
+            <a
+              href="https://arka.social"
+              target="_blank"
+              className="mt-3 block w-full rounded-full bg-white py-2.5 text-center text-sm font-bold text-arka-pink transition active:scale-95"
             >
-              {upgrading ? 'Processing...' : 'Upgrade Now'}
-            </button>
+              Upgrade on arka.social →
+            </a>
           </div>
         )}
 

@@ -82,12 +82,13 @@ export default function MiniAppPage() {
                     <p className="mt-1 text-xs opacity-90">Create communities & host events</p>
                     <p className="mt-1 text-[10px] opacity-70">0.001 ETH · one-time</p>
                   </div>
-                  <button
-                    onClick={() => router.push('/miniapp/profile')}
+                  <a
+                    href="https://arka.social"
+                    target="_blank"
                     className="rounded-full bg-white px-4 py-2 text-xs font-bold text-arka-pink"
                   >
                     Upgrade
-                  </button>
+                  </a>
                 </div>
               </div>
             )}
