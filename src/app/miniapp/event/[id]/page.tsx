@@ -171,7 +171,8 @@ export default function EventPage() {
     return (
       <main className="mx-auto min-h-screen w-full max-w-md bg-white px-5 py-6">
         <header className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="text-lg">←</button>
             <ArkaLogo size={24} />
             <span className="text-sm font-bold text-arka-text">arka</span>
           </div>
@@ -214,7 +215,8 @@ export default function EventPage() {
     <main className="mx-auto min-h-screen w-full max-w-md bg-white">
       <header className="sticky top-0 z-10 bg-white px-5 py-4">
         <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="text-lg">←</button>
             <ArkaLogo size={24} />
             <span className="text-sm font-bold text-arka-text">arka</span>
           </div>

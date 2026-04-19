@@ -1,90 +1,481 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arka — Pitch Deck</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1a1a2e; }
-  .deck { max-width: 520px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-  .slide { position: relative; width: 100%; min-height: 420px; background: #fff; border-radius: 24px; padding: 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05); }
-  .slide-num { font-size: 11px; color: rgba(0,0,0,0.25); }
-  .slide h1 { font-size: 28px; font-weight: 800; margin-top: 12px; }
-  .slide .sub { font-size: 13px; color: rgba(0,0,0,0.5); margin-top: 4px; font-weight: 500; }
-  .slide .body { margin-top: 20px; font-size: 14px; line-height: 1.7; color: rgba(0,0,0,0.6); white-space: pre-line; }
-  .accent-bar { position: absolute; bottom: 0; left: 32px; right: 32px; height: 4px; border-radius: 4px; }
-  .nav { margin-top: 24px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
-  .nav button { background: none; border: none; font-size: 14px; font-weight: 600; padding: 10px 20px; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
-  .nav button:hover { background: rgba(0,0,0,0.05); }
-  .nav button:disabled { opacity: 0.3; cursor: default; }
-  .nav button:disabled:hover { background: none; }
-  .dots { display: flex; gap: 6px; }
-  .dot { height: 8px; border-radius: 8px; cursor: pointer; transition: all 0.3s; border: none; }
-  .logo-rays { margin: 8px 0 20px; }
-  .logo-rays svg { width: 48px; height: 48px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arka — Pitch Deck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #07070e;
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 75% 65% at -8% 15%, rgba(229, 0, 125, .13) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 65% at 108% 85%, rgba(102, 45, 145, .1) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 45% at 55% -5%, rgba(0, 174, 239, .07) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .deck {
+      position: relative;
+      z-index: 1;
+      max-width: 1060px;
+      margin: 0 auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 28px 80px;
+    }
+
+    .slide {
+      position: relative;
+      width: 100%;
+      height: 560px;
+      background: rgba(255, 255, 255, .03);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 28px;
+      padding: 44px 52px;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    .slide::-webkit-scrollbar {
+      display: none;
+    }
+
+    .sn {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .18);
+      margin-bottom: 22px;
+    }
+
+    .ab {
+      position: absolute;
+      bottom: 0;
+      left: 52px;
+      right: 52px;
+      height: 3px;
+      border-radius: 3px;
+    }
+
+    /* Nav */
+    .nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1060px;
+      margin: 0 auto;
+      z-index: 100;
+    }
+
+    .nav button {
+      background: rgba(255, 255, 255, .07);
+      border: 1px solid rgba(255, 255, 255, .1);
+      font: 600 13px/1 'Inter', sans-serif;
+      padding: 9px 18px;
+      border-radius: 100px;
+      cursor: pointer;
+      color: rgba(255, 255, 255, .6);
+      transition: all .18s;
+    }
+
+    .nav button:hover:not(:disabled) {
+      background: rgba(255, 255, 255, .13);
+      color: #fff;
+    }
+
+    .nav button:disabled {
+      opacity: .2;
+      cursor: default;
+    }
+
+    .dots {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .dot {
+      height: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all .3s cubic-bezier(.34, 1.56, .64, 1);
+      border: none;
+    }
+
+    /* Shared content helpers */
+    .card {
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: 16px;
+      padding: 20px 22px;
+    }
+
+    .g2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .g3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+    }
+  </style>
 </head>
+
 <body>
-<div class="deck">
-  <div class="slide" id="slide"></div>
-  <div class="nav">
+  <div class="deck">
+    <div class="slide" id="slide"></div>
+  </div>
+  <nav class="nav">
     <button id="prev" onclick="go(-1)">← Back</button>
     <div class="dots" id="dots"></div>
     <button id="next" onclick="go(1)">Next →</button>
-  </div>
-</div>
+  </nav>
 
-<script>
-const LOGO = `<div class="logo-rays"><svg viewBox="0 0 77 46" fill="none"><path d="M3 46L33 38L3 30L0 38L3 46Z" fill="#00AEEF"/><path d="M3.598 27.356L33.579 35.427L11.598 13.499L5 18.927L3.598 27.356Z" fill="#8DC63F"/><path d="M13.5 11.598L35.428 33.579L27.356 3.598L18.928 5L13.5 11.598Z" fill="#FFF200"/><path d="M30 3L38 33L46 3L38 0L30 3Z" fill="#F7941D"/><path d="M49 3.598L40.928 33.579L62.856 11.598L57.428 5L49 3.598Z" fill="#ED1C24"/><path d="M64.981 13.5L43 35.428L72.981 27.356L71.579 18.928L64.981 13.5Z" fill="#E5007D"/><path d="M74 30L44 38L74 46L77 38L74 30Z" fill="#662D91"/></svg></div>`;
+  <script>
+    const C = { pink: '#E5007D', cyan: '#00AEEF', green: '#8DC63F', orange: '#F7941D', red: '#ED1C24', purple: '#662D91' };
 
-const C = { pink:'#E5007D', cyan:'#00AEEF', green:'#8DC63F', orange:'#F7941D', red:'#ED1C24', purple:'#662D91' };
+    const LOGO = `<svg viewBox="0 0 77 65" width="108" height="90" fill="none">
+      <g fill-rule="evenodd">
+        <path d="M3 46L33 38L3 30L0 38L3 46Z" fill="#00AEEF"/>
+        <path d="M3.59808 27.3555L33.5788 35.4273L11.5981 13.4991L5 18.9273L3.59808 27.3555Z" fill="#8DC63F"/>
+        <path d="M13.5 11.5981L35.4282 33.5788L27.3564 3.59808L18.9282 5L13.5 11.5981Z" fill="#FFF200"/>
+        <path d="M30 3L38 33L46 3L38 0L30 3Z" fill="#F7941D"/>
+        <path d="M49 3.59808L40.9282 33.5788L62.8564 11.5981L57.4282 5L49 3.59808Z" fill="#ED1C24"/>
+        <path d="M64.981 13.5L43.0003 35.4282L72.981 27.3564L71.5791 18.9282L64.981 13.5Z" fill="#E5007D"/>
+        <path d="M74 30L44 38L74 46L77 38L74 30Z" fill="#662D91"/>
+      </g>
+      <g fill="#E5007D">
+        <path d="M16.5 64.35C15.13 64.35 13.88 64 12.75 63.3C11.62 62.58 10.71 61.63 10.03 60.45C9.36 59.25 9.03 57.93 9.03 56.5C9.03 55.07 9.36 53.76 10.03 52.57C10.71 51.37 11.62 50.42 12.75 49.72C13.88 49.01 15.13 48.65 16.5 48.65C17.48 48.65 18.39 48.82 19.23 49.17C20.06 49.52 20.77 50.02 21.35 50.65V49H24.78V64H21.35V62.35C20.77 62.97 20.06 63.46 19.23 63.82C18.39 64.17 17.48 64.35 16.5 64.35Z"/>
+        <path d="M26.68 64V49H30.21V51.63C30.74 50.76 31.41 50.08 32.21 49.6C33.02 49.1 33.99 48.85 35.11 48.85L35.98 52.4C35.67 52.3 35.31 52.25 34.91 52.25C33.61 52.25 32.57 52.67 31.78 53.5C31 54.33 30.61 55.52 30.61 57.05V64H26.68Z"/>
+        <path d="M46.23 64L40.03 55.75L45.13 49H49.41L44.41 55.43L50.91 64H46.23ZM36.31 64V40H40.23V64H36.31Z"/>
+        <path d="M56.66 64.35C55.3 64.35 54.05 64 52.91 63.3C51.78 62.58 50.87 61.63 50.19 60.45C49.52 59.25 49.19 57.93 49.19 56.5C49.19 55.07 49.52 53.76 50.19 52.57C50.87 51.37 51.78 50.42 52.91 49.72C54.05 49.01 55.3 48.65 56.66 48.65C57.65 48.65 58.55 48.82 59.39 49.17C60.22 49.52 60.93 50.02 61.51 50.65V49H64.94V64H61.51V62.35C60.93 62.97 60.22 63.46 59.39 63.82C58.55 64.17 57.65 64.35 56.66 64.35Z"/>
+      </g>
+    </svg>`;
 
-const slides = [
-  { t:'arka', s:'Real connections, real events.', b:'Community engagement platform with on-chain reputation.\nBuilt on Arbitrum.', c:'pink', logo:true },
-  { t:'The Problem', s:'', b:'Community platforms are passive. Discord and Telegram are noise.\n\nNo proof of attendance. No skin in the game.\nHosts have no accountability. Members have no reputation.\n\nOnline engagement ≠ real engagement.', c:'red' },
-  { t:'The Solution', s:'Arka — communities that prove you showed up', b:'Hosts create communities with on-chain registries.\nMembers earn reputation by attending events IRL.\nQR code matching forces real human interaction.\n\nEverything verifiable. Everything on-chain.', c:'cyan' },
-  { t:'How It Works', s:'', b:'1. Host subscribes → creates community on-chain\n2. Members join (free browse, or paid membership)\n3. Host creates events with QR matching\n4. At events: get a number → find your match → scan QR\n5. Attendance + scans = on-chain reputation\n6. Leaderboard ranks members per community', c:'green' },
-  { t:'QR Matching', s:'The killer feature', b:'Host activates matching at an event.\nEach attendee gets a random number on screen.\nFind the person with your matching number.\nScan each other\'s QR codes.\n\nForces real conversations — not just badge-scanning.\nEvery scan is recorded on-chain.', c:'orange' },
-  { t:'Business Model', s:'Two tiers, simple revenue', b:'User (free)\n· Browse communities & events\n· Attend events, earn reputation\n· Create standalone events\n\nCommunity Host (15 USDC/mo)\n· Create & manage communities\n· Charge membership fees to members\n· Meeting rooms, facility management\n· Coffee tabs with on-chain settlement\n· Content monetization\n· Encrypted event data on Arweave\n· Advanced calendar, analytics', c:'purple' },
-  { t:'On-Chain Architecture', s:'Arbitrum Sepolia → Mainnet', b:'UserProfileNFT — ERC-721, per-community reputation, badges\nCommunityRegistry — events, attendance, leaderboard\n\nDynamic SDK — embedded wallets, email sign-in\nPaymaster — gasless transactions for users\nArweave — encrypted event data persistence (premium)\n\nContracts deployed. Live on testnet.', c:'cyan' },
-  { t:'Tech Stack', s:'', b:'Frontend: Next.js, TypeScript, Tailwind CSS\nAuth: Dynamic wallet SDK (email + wallet)\nContracts: Solidity, Foundry, Arbitrum\nStorage: Arweave via Irys (encrypted)\nMini App: Telegram WebApp SDK\nPayments: USDC on Arbitrum', c:'green' },
-  { t:'Live Demo', s:'', b:'Web: arka.claws.page\nTelegram: @arka_telegram_bot\n\nContracts on Arbitrum Sepolia:\nUserProfileNFT: 0xa692...bcf2\nCommunityRegistry: 0xe98e...3edc\n\nTry it now — sign in, create a community, host an event.', c:'pink' },
-  { t:'Roadmap', s:'', b:'Now: MVP + Dynamic wallet + contracts deployed\nNext: Mainnet deploy, real USDC payments, paymaster\nQ3: Pro features (rooms, tabs, content, Arweave)\nQ4: Multi-chain, DAO governance for platform fees\n\nOpen source. Community-driven. Built to last.', c:'orange' },
-  { t:'Thank You', s:'arka.claws.page', b:'Real connections, real events.\n\nBuilt on Arbitrum · Powered by Dynamic', c:'pink', logo:true },
-];
+    function badge(text, bg, border) {
+      return `<span style="padding:5px 13px;background:${bg || 'rgba(255,255,255,.06)'};border:1px solid ${border || 'rgba(255,255,255,.1)'};border-radius:100px;font-size:13px;font-weight:600;color:rgba(255,255,255,.7);white-space:nowrap">${text}</span>`;
+    }
 
-let cur = 0;
+    function card(icon, title, body, color) {
+      return `<div class="card" style="border-color:rgba(255,255,255,.07)">
+        <div style="font-size:22px;margin-bottom:8px">${icon}</div>
+        <div style="font-size:15px;font-weight:700;color:${color || '#fff'};margin-bottom:5px">${title}</div>
+        <div style="font-size:13.5px;color:rgba(255,255,255,.5);line-height:1.6">${body}</div>
+      </div>`;
+    }
 
-function render() {
-  const s = slides[cur];
-  const color = C[s.c] || C.pink;
-  document.getElementById('slide').innerHTML = `
-    <p class="slide-num">${cur+1} / ${slides.length}</p>
-    ${s.logo ? LOGO : ''}
-    <h1 style="color:${cur===0?'#1a1a2e':color}">${s.t}</h1>
-    ${s.s ? `<p class="sub">${s.s}</p>` : ''}
-    <div class="body">${s.b}</div>
-    <div class="accent-bar" style="background:${color}"></div>
-  `;
-  document.getElementById('prev').disabled = cur === 0;
-  document.getElementById('next').disabled = cur === slides.length - 1;
-  document.getElementById('next').style.color = color;
+    const slides = [
+      /* 0 — Title */
+      {
+        c: 'pink', render: (i, n) => `
+        <p class="sn">${i + 1} / ${n}</p>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(100% - 44px);text-align:center">
+          <div style="margin-bottom:28px">${LOGO}</div>
+          <h1 style="font-size:52px;font-weight:900;letter-spacing:-.03em;line-height:1.05">
+            real connections,<br>
+            <span style="background:linear-gradient(135deg,#E5007D 20%,#662D91);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">real events.</span>
+          </h1>
+          <p style="font-size:19px;color:rgba(255,255,255,.38);margin-top:18px;font-weight:500">communities that prove you showed up</p>
+          <div style="display:flex;gap:8px;margin-top:36px;flex-wrap:wrap;justify-content:center">
+            ${['on-chain attendance', 'real interactions', 'community reputation'].map(t => badge('✓ ' + t)).join('')}
+          </div>
+        </div>
+        <div class="ab" style="background:linear-gradient(90deg,#E5007D,#662D91)"></div>
+      ` },
 
-  const dots = document.getElementById('dots');
-  dots.innerHTML = slides.map((_, i) =>
-    `<button class="dot" onclick="jump(${i})" style="width:${i===cur?20:8}px;background:${i===cur?color:'#ddd'}"></button>`
-  ).join('');
-}
+      /* 1 — Problem */
+      {
+        c: 'red', render: (i, n) => `
+        <p class="sn">${i + 1} / ${n}</p>
+        <h1 style="font-size:44px;font-weight:900;letter-spacing:-.025em;color:${C.red}">the problem</h1>
+        <p style="font-size:17px;color:rgba(255,255,255,.4);margin-top:6px;font-weight:500;margin-bottom:28px">online communities are passive — and broken</p>
+        <div class="g3">
+          ${card('👻', 'show up, vanish', 'you attend, get a checkmark, then disappear. no trace of engagement left behind.', C.red)}
+          ${card('🎭', 'presence ≠ proof', 'anyone can claim attendance. there\'s no way to verify you were actually there.', C.red)}
+          ${card('📉', 'zero accountability', 'hosts can\'t tell who\'s engaged. members drift. communities hollow out.', C.red)}
+        </div>
+        <div class="ab" style="background:${C.red}"></div>
+      ` },
 
-function go(d) { cur = Math.max(0, Math.min(slides.length-1, cur+d)); render(); }
-function jump(i) { cur = i; render(); }
-render();
+      /* 2 — Solution */
+      {
+        c: 'cyan', render: (i, n) => `
+        <p class="sn">${i + 1} / ${n}</p>
+        <h1 style="font-size:44px;font-weight:900;letter-spacing:-.025em;color:${C.cyan}">the solution</h1>
+        <p style="font-size:17px;color:rgba(255,255,255,.4);margin-top:6px;font-weight:500;margin-bottom:28px">communities that prove you showed up</p>
+        <div class="g3">
+          ${card('⛓️', 'attendance on-chain', 'every real-world event attendance becomes a permanent, verifiable on-chain record.', C.cyan)}
+          ${card('🏆', 'build reputation', 'members earn trust scores and reputation — not just presence, but proof of engagement.', C.cyan)}
+          ${card('🎯', 'accountable hosts', 'hosts create structured events with QR-based verification. engagement is measurable.', C.cyan)}
+        </div>
+        <div class="ab" style="background:${C.cyan}"></div>
+      ` },
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight' || e.key === ' ') go(1);
-  if (e.key === 'ArrowLeft') go(-1);
-});
-</script>
+      /* 3 — How It Works */
+      {
+        c: 'green', render: (i, n) => `
+        <p class="sn">${i + 1} / ${n}</p>
+        <h1 style="font-size:44px;font-weight:900;letter-spacing:-.025em;color:${C.green}">how it works</h1>
+        <p style="font-size:17px;color:rgba(255,255,255,.4);margin-top:6px;font-weight:500">Host creates → members join → events happen</p>
+        <div style="display:flex;align-items:flex-start;gap:0;margin-top:32px">
+          ${[
+            ['join', 'join a community or create one as a host'],
+            ['attend', 'show up to a real-world event'],
+            ['match', 'get matched with another attendee'],
+            ['scan', 'exchange QR codes to verify the interaction'],
+            ['earn', 'gain on-chain reputation & trust score']
+          ].map(([s, d], idx, arr) => `
+            <div style="flex:1;text-align:center;position:relative">
+              ${idx < arr.length - 1 ? `<div style="position:absolute;top:22px;left:55%;width:90%;height:2px;background:rgba(255,255,255,.08)"></div>` : ''}
+              <div style="width:44px;height:44px;border-radius:50%;background:${C.green};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#000;margin:0 auto 12px">${idx + 1}</div>
+              <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:4px">${s}</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.4);line-height:1.5;padding:0 4px">${d}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="ab" style="background:${C.green}"></div>
+      ` },
+
+      /* 4 — QR Matching */
+      {
+        c: 'orange', render: (i, n) => `
+        <p class="sn">${i + 1} / ${n}</p>
+        <h1 style="font-size:44px;font-weight:900;letter-spacing:-.025em;color:${C.orange}">QR matching</h1>
+        <p style="font-size:17px;color:rgba(255,255,255,.4);margin-top:6px;font-weight:500;margin-bottom:28px">from passive attendance to forced interaction</p>
+        <div class="g2">
+          <div class="card" style="border-color:rgba(237,28,36,.2);background:rgba(237,28,36,.06)">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${C.red};margin-bottom:14px">Before</div>
+            <div style="font-size:16px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:10px">attend → leave unnoticed</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${['no proof you were there', 'no one you talked to', 'no record of value created', 'community never grows'].map(t => `<div style="font-size:13.5px;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:8px"><span style="color:${C.red};font-weight:700">✕</span>${t}</div>`).join('')}
+            </div>
+          </div>
+          <div class="card" style="border-color:rgba(247,148,29,.25);background:rgba(247,148,29,.06)">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${C.orange};margin-bottom:14px">with arka</div>
+            <div style="font-size:16px;font-weight:700;color:rgba(255,255,255,.85);margin-bottom:10px">attend → match → talk → verify</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${['paired with another attendee', 'scan each other\'s QR code', 'interaction recorded on-chain', 'both earn reputation points'].map(t => `<div style="font-size:13.5px;color:rgba(255,255,255,.6);display:flex;align-items:center;gap:8px"><span style="color:${C.green};font-weight:700">✓</span>${t}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="ab" style="background:${C.orange}"></div>
+      ` },
+
+      /* 5 — Business Model */
+      {
+        c: 'purple', render: (i, n) => `
+        <p class="sn">${i + 1} / ${n}</p>
+        <h1 style="font-size:44px;font-weight:900;letter-spacing:-.025em;color:${C.purple}">business model</h1>
+        <p style="font-size:17px;color:rgba(255,255,255,.4);margin-top:6px;font-weight:500;margin-bottom:28px">two tiers — free to join, paid to host at scale</p>
+        <div style="overflow:hidden;border-radius:16px;border:1px solid rgba(255,255,255,.08)">
+          <table style="width:100%;border-collapse:collapse;font-size:15px">
+            <thead>
+              <tr style="background:rgba(255,255,255,.04)">
+                <th style="padding:14px 20px;text-align:left;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4)">feature</th>
+                <th style="padding:14px 20px;text-align:center;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4)">free</th>
+                <th style="padding:14px 20px;text-align:center;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${C.purple}">pro host</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${[
+            ['browse communities', '✓', '✓'],
+            ['attend events', '✓', '✓'],
+            ['create meetups', '—', '✓'],
+            ['monetize content', '—', '✓'],
+            ['arweave permanent storage', '—', '✓'],
+          ].map(([f, fr, pr], j) => `
+                <tr style="border-top:1px solid rgba(255,255,255,.05)${j % 2 === 0 ? ';background:rgba(255,255,255,.015)' : ''}">
+                  <td style="padding:13px 20px;color:rgba(255,255,255,.75);font-weight:500">${f}</td>
+                  <td style="padding:13px 20px;text-align:center;color:${fr === '✓' ? C.green : 'rgba(255,255,255,.2)'};font-weight:700;font-size:16px">${fr}</td>
+                  <td style="padding:13px 20px;text-align:center;color:${pr === '✓' ? C.purple : 'rgba(255,255,255,.2)'};font-weight:700;font-size:16px">${pr}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="ab" style="background:${C.purple}"></div>
+      ` },
+
+      /* 7 — Tech Stack */
+      {
+        c: 'green', render: (i, n) => `
+        <p class="sn">${i + 1} / ${n}</p>
+        <h1 style="font-size:44px;font-weight:900;letter-spacing:-.025em;color:${C.green}">tech stack</h1>
+        <p style="font-size:17px;color:rgba(255,255,255,.4);margin-top:6px;font-weight:500;margin-bottom:32px">oroduction-ready, battle-tested tools</p>
+        <div class="g2">
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:14px">frontend</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              ${[
+            ['Next.js', 'rgba(255,255,255,.9)', 'rgba(255,255,255,.08)'],
+            ['TypeScript', '#60a5fa', 'rgba(96,165,250,.12)'],
+            ['Tailwind CSS', '#38bdf8', 'rgba(56,189,248,.12)'],
+            ['telegram WebApp', '#2AABEE', 'rgba(42,171,238,.12)'],
+            ['Dynamic Wallet SDK', '#a78bfa', 'rgba(167,139,250,.12)'],
+          ].map(([n, c, bg]) => `<span style="padding:7px 14px;background:${bg};border:1px solid ${c}33;border-radius:100px;font-size:13px;font-weight:600;color:${c}">${n}</span>`).join('')}
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:14px">blockchain</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              ${[
+            ['Solidity', '#f59e0b', 'rgba(245,158,11,.12)'],
+            ['Foundry', '#F7941D', 'rgba(247,148,29,.12)'],
+            ['Arbitrum Sepolia', '#28A0F0', 'rgba(40,160,240,.12)'],
+            ['Arweave', '#ffffff', 'rgba(255,255,255,.06)'],
+          ].map(([n, c, bg]) => `<span style="padding:7px 14px;background:${bg};border:1px solid ${c}33;border-radius:100px;font-size:13px;font-weight:600;color:${c}">${n}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="ab" style="background:${C.green}"></div>
+      ` },
+
+      /* 8 — Live Demo */
+      {
+        c: 'pink', render: (i, n) => `
+        <p class="sn">${i + 1} / ${n}</p>
+        <h1 style="font-size:44px;font-weight:900;letter-spacing:-.025em;color:${C.pink}">live demo</h1>
+        <p style="font-size:17px;color:rgba(255,255,255,.4);margin-top:6px;font-weight:500;margin-bottom:36px">live on Arbitrum Sepolia — try it now</p>
+        <div class="g2" style="margin-bottom:20px">
+          <div class="card" style="border-color:rgba(229,0,125,.2);background:rgba(229,0,125,.05)">
+            <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${C.pink};margin-bottom:12px">web app</div>
+            <div style="font-size:28px;font-weight:800;color:#fff;margin-bottom:6px">arka.social</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.4)">Full webapp experience with wallet connect, event creation, QR scanning</div>
+          </div>
+          <div class="card" style="border-color:rgba(42,171,238,.2);background:rgba(42,171,238,.05)">
+            <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#2AABEE;margin-bottom:12px">telegram Bot</div>
+            <div style="font-size:28px;font-weight:800;color:#fff;margin-bottom:6px">@arka_telegram_bot</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.4)">miniApp inside telegram — notifications, QR flows, community updates</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;background:rgba(141,198,63,.06);border:1px solid rgba(141,198,63,.2);border-radius:14px">
+          <span style="font-size:18px">⛓️</span>
+          <span style="font-size:14px;font-weight:600;color:rgba(255,255,255,.7)">deployed and verified on <span style="color:${C.green}">Arbitrum Sepolia</span> — smart contracts live, reputation system active</span>
+        </div>
+        <div class="ab" style="background:${C.pink}"></div>
+      ` },
+
+      /* 9 — Roadmap */
+      {
+        c: 'orange', render: (i, n) => `
+        <p class="sn">${i + 1} / ${n}</p>
+        <div style="display:flex;align-items:flex-start;gap:40px;height:calc(100% - 44px)">
+          <div style="flex:1;min-width:0">
+            <h1 style="font-size:44px;font-weight:900;letter-spacing:-.025em;color:${C.orange}">roadmap</h1>
+            <p style="font-size:17px;color:rgba(255,255,255,.4);margin-top:6px;font-weight:500;margin-bottom:28px">where we're headed</p>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              ${[
+            ['MVP', 'current', '✓ live on testnet, QR system, reputation NFTs', 'green'],
+            ['mainnet', 'TBD', 'deploy to Arbitrum mainnet, real value at stake', 'orange'],
+            ['pro expansion', 'TBD', 'host monetization, Arweave storage, analytics', 'orange'],
+            ['multi-chain', 'TBD', 'expand to Base, Optimism, Polygon', 'purple'],
+            ['DAO governance', 'TBD', 'full community treasury, AI-proposed rewards', 'purple'],
+          ].map(([phase, when, desc, col], idx) => `
+                <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${idx === 0 ? 'rgba(141,198,63,.07)' : 'rgba(255,255,255,.025)'};border:1px solid ${idx === 0 ? 'rgba(141,198,63,.2)' : 'rgba(255,255,255,.06)'};border-radius:12px">
+                  <div style="width:6px;height:6px;border-radius:50%;background:${C[col]};flex-shrink:0"></div>
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+                      <span style="font-size:13.5px;font-weight:700;color:${idx === 0 ? C.green : 'rgba(255,255,255,.8)'}">${phase}</span>
+                      <span style="font-size:11px;font-weight:600;padding:2px 8px;background:${idx === 0 ? 'rgba(141,198,63,.15)' : 'rgba(255,255,255,.06)'};border-radius:100px;color:${idx === 0 ? C.green : 'rgba(255,255,255,.4)'}">${when}</span>
+                    </div>
+                    <div style="font-size:12px;color:rgba(255,255,255,.38)">${desc}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+        <div class="ab" style="background:${C.orange}"></div>
+      ` },
+
+      /* 10 — Closing */
+      {
+        c: 'pink', render: (i, n) => `
+        <p class="sn">${i + 1} / ${n}</p>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(100% - 44px);text-align:center">
+          <div style="margin-bottom:24px">${LOGO}</div>
+          <h1 style="font-size:42px;font-weight:900;letter-spacing:-.025em;line-height:1.1;max-width:600px">
+            real connections,<br>verified on-chain.
+          </h1>
+          <p style="font-size:18px;color:rgba(255,255,255,.45);margin-top:16px;font-weight:500;max-width:500px;line-height:1.6">
+            we're building communities people actually show up for.
+          </p>
+          <div style="margin-top:36px;padding:16px 36px;background:linear-gradient(135deg,rgba(229,0,125,.15),rgba(102,45,145,.15));border:1px solid rgba(229,0,125,.3);border-radius:16px">
+            <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:4px">Try it now</div>
+            <div style="font-size:26px;font-weight:800;background:linear-gradient(135deg,#E5007D,#662D91);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">arka.social</div>
+          </div>
+        </div>
+        <div class="ab" style="background:linear-gradient(90deg,#E5007D,#662D91)"></div>
+      ` },
+    ];
+
+    let cur = 0;
+
+    function render() {
+      const s = slides[cur];
+      const color = C[s.c] || C.pink;
+      document.getElementById('slide').innerHTML = s.render(cur, slides.length);
+
+      document.getElementById('prev').disabled = cur === 0;
+      document.getElementById('next').disabled = cur === slides.length - 1;
+
+      const dots = document.getElementById('dots');
+      dots.innerHTML = slides.map((sd, i) => {
+        const dc = C[sd.c] || C.pink;
+        return `<button class="dot" onclick="jump(${i})" style="width:${i === cur ? 22 : 6}px;background:${i === cur ? dc : 'rgba(255,255,255,.18)'}"></button>`;
+      }).join('');
+    }
+
+    function go(d) { cur = Math.max(0, Math.min(slides.length - 1, cur + d)); render(); }
+    function jump(i) { cur = i; render(); }
+    render();
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    });
+
+    document.addEventListener('wheel', e => {
+      const slide = document.getElementById('slide');
+      const atTop = slide.scrollTop === 0;
+      const atBottom = slide.scrollTop + slide.clientHeight >= slide.scrollHeight - 1;
+      if (e.deltaY < 0 && !atTop) return;
+      if (e.deltaY > 0 && !atBottom) return;
+      e.preventDefault();
+      go(e.deltaY > 0 ? 1 : -1);
+    }, { passive: false });
+  </script>
 </body>
+
 </html>
